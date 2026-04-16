@@ -9,20 +9,20 @@ import {
 } from "firebase/auth";
 import { doc, serverTimestamp, setDoc } from "firebase/firestore";
 
-import { firebaseAuth, firebaseDb } from "@/lib/firebase/client";
+import { getFirebaseAuth, getFirebaseDb } from "@/lib/firebase/client";
 
 export async function signUpWithEmail(
   email: string,
   password: string
 ): Promise<UserCredential> {
   const credential = await createUserWithEmailAndPassword(
-    firebaseAuth,
+    getFirebaseAuth(),
     email,
     password
   );
 
   await setDoc(
-    doc(firebaseDb, "users", credential.user.uid),
+    doc(getFirebaseDb(), "users", credential.user.uid),
     {
       uid: credential.user.uid,
       email: credential.user.email,
@@ -39,15 +39,15 @@ export async function logInWithEmail(
   email: string,
   password: string
 ): Promise<UserCredential> {
-  return signInWithEmailAndPassword(firebaseAuth, email, password);
+  return signInWithEmailAndPassword(getFirebaseAuth(), email, password);
 }
 
 export async function logOutUser() {
-  await signOut(firebaseAuth);
+  await signOut(getFirebaseAuth());
 }
 
 export async function sendUserPasswordReset(email: string) {
-  await sendPasswordResetEmail(firebaseAuth, email);
+  await sendPasswordResetEmail(getFirebaseAuth(), email);
 }
 
 export async function deleteAuthenticatedUser(user: User) {

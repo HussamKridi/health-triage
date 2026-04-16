@@ -15,7 +15,7 @@ import {
   updateDoc,
 } from "firebase/firestore";
 
-import { firebaseDb } from "@/lib/firebase/client";
+import { getFirebaseDb } from "@/lib/firebase/client";
 import type {
   FinalTriageResult,
   LocalAssessment,
@@ -57,15 +57,15 @@ export function getFirestoreErrorMessage(error: unknown) {
 }
 
 function createProfileDocRef(uid: string): DocumentReference {
-  return doc(firebaseDb, "users", uid);
+  return doc(getFirebaseDb(), "users", uid);
 }
 
 function createSessionCollectionRef(uid: string) {
-  return collection(firebaseDb, "users", uid, "sessions");
+  return collection(getFirebaseDb(), "users", uid, "sessions");
 }
 
 function createSessionDocRef(uid: string, sessionId: string): DocumentReference {
-  return doc(firebaseDb, "users", uid, "sessions", sessionId);
+  return doc(getFirebaseDb(), "users", uid, "sessions", sessionId);
 }
 
 function toDate(value: unknown) {

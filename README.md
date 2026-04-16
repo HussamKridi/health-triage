@@ -37,11 +37,18 @@ Firebase web config values are safe to expose in the client bundle because they 
 
 ## Vercel Deployment
 
-Add every variable from `.env.example` to the Vercel project settings before deploying.
+Add every variable from `.env.example` to `Vercel Project Settings -> Environment Variables` before deploying.
 
-- Set the `NEXT_PUBLIC_health_triage_*` variables for the environments where you build the app.
+- Set these public Firebase variables exactly as named:
+  - `NEXT_PUBLIC_health_triage_FIREBASE_API_KEY`
+  - `NEXT_PUBLIC_health_triage_FIREBASE_AUTH_DOMAIN`
+  - `NEXT_PUBLIC_health_triage_FIREBASE_PROJECT_ID`
+  - `NEXT_PUBLIC_health_triage_FIREBASE_STORAGE_BUCKET`
+  - `NEXT_PUBLIC_health_triage_FIREBASE_MESSAGING_SENDER_ID`
+  - `NEXT_PUBLIC_health_triage_FIREBASE_APP_ID`
 - Set `GEMINI_API_KEY` as a server-side environment variable in Vercel.
 - Do not put the Gemini key into client code, public env vars, or browser requests.
+- `.env.local` is only for local development and must never be committed.
 
 ## GitHub Publishing Safety
 
