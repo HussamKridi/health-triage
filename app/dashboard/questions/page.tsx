@@ -32,9 +32,7 @@ export default function QuestionsPage() {
     <>
       <section className="space-y-4">
         <Badge className="rounded-full px-4 py-1.5">Page 3</Badge>
-        <h1 className="text-3xl font-semibold text-slate-950">
-          Follow-up Question Flow
-        </h1>
+        <h1 className="text-3xl font-semibold text-slate-950">Questions</h1>
         <p className="max-w-3xl text-base text-slate-600">
           One question appears at a time. Yes/no and directed answers are rendered as
           choices instead of unnecessary free text.
@@ -51,7 +49,7 @@ export default function QuestionsPage() {
           </CardHeader>
           <CardContent>
             <Button asChild className="rounded-full">
-              <Link href="/dashboard/session">Go to Current Triage Session</Link>
+              <Link href="/dashboard/session">Go to Check-Up</Link>
             </Button>
           </CardContent>
         </Card>
@@ -72,7 +70,7 @@ export default function QuestionsPage() {
             {activeSession?.status === "completed" ? (
               <Button asChild className="rounded-full">
                 <Link href="/dashboard/result">
-                  Continue to Triage Result
+                  Continue to Results
                   <ArrowRight className="size-4" />
                 </Link>
               </Button>

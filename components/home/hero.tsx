@@ -58,7 +58,7 @@ export function HomeHero() {
 
   const primaryHref = !loading && isAuthenticated ? "/dashboard/profile" : "/signup";
   const primaryLabel = !loading && isAuthenticated ? "Start Triage" : "Start Triage";
-  const secondaryHref = !loading && isAuthenticated ? "/dashboard" : "#learn-more";
+  const secondaryHref = "#learn-more";
 
   return (
     <section className="relative overflow-hidden px-6 pb-20 pt-14 lg:px-8 lg:pb-28 lg:pt-18">

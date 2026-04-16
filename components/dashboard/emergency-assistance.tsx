@@ -20,7 +20,7 @@ export function EmergencyAssistance({
       className="border-red-200 bg-[linear-gradient(135deg,rgba(254,242,242,0.9),rgba(255,255,255,1))] shadow-sm"
     >
       <CardHeader>
-        <CardTitle className="text-xl text-red-700">Emergency Assistance</CardTitle>
+        <CardTitle className="text-xl text-red-700">Emergency Help</CardTitle>
         <CardDescription className="mt-2 text-base text-red-700/80">
           High-risk results surface emergency tools immediately so users can move to
           the next safe action without searching elsewhere.

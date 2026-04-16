@@ -7,18 +7,15 @@ import {
   Ambulance,
   ClipboardPlus,
   FileText,
+  LayoutDashboard,
   HeartPulse,
   History,
-  LayoutDashboard,
   ShieldPlus,
-  UserRound,
 } from "lucide-react";
 
-import { NavUser } from "@/components/nav-user";
 import {
   Sidebar,
   SidebarContent,
-  SidebarFooter,
   SidebarHeader,
   SidebarMenu,
   SidebarMenuButton,
@@ -26,28 +23,16 @@ import {
 } from "@/components/ui/sidebar";
 
 const navItems = [
-  { title: "Dashboard", url: "/dashboard", icon: LayoutDashboard },
-  { title: "Patient Profile Summary", url: "/dashboard/profile", icon: UserRound },
-  { title: "Current Triage Session", url: "/dashboard/session", icon: ClipboardPlus },
-  { title: "Follow-up Question Flow", url: "/dashboard/questions", icon: HeartPulse },
-  { title: "Triage Result", url: "/dashboard/result", icon: FileText },
-  { title: "Emergency Assistance", url: "/dashboard/emergency", icon: Ambulance },
-  { title: "Session History", url: "/dashboard/history", icon: History },
-  { title: "Quick Check-Up", url: "/dashboard/quick-checkup", icon: ShieldPlus },
+  { title: "Overview", url: "/dashboard", icon: LayoutDashboard },
+  { title: "Check-Up", url: "/dashboard/session", icon: ClipboardPlus },
+  { title: "Questions", url: "/dashboard/questions", icon: HeartPulse },
+  { title: "Results", url: "/dashboard/result", icon: FileText },
+  { title: "Emergency Help", url: "/dashboard/emergency", icon: Ambulance },
+  { title: "History", url: "/dashboard/history", icon: History },
+  { title: "Quick Check", url: "/dashboard/quick-checkup", icon: ShieldPlus },
 ];
 
-export function AppSidebar({
-  user,
-  onDeleteAccount,
-  isDeletingAccount,
-}: {
-  user: {
-    name: string;
-    email: string;
-  };
-  onDeleteAccount: () => Promise<void>;
-  isDeletingAccount: boolean;
-}) {
+export function AppSidebar() {
   const pathname = usePathname();
 
   return (
@@ -92,13 +77,6 @@ export function AppSidebar({
           })}
         </SidebarMenu>
       </SidebarContent>
-      <SidebarFooter>
-        <NavUser
-          user={user}
-          onDeleteAccount={onDeleteAccount}
-          isDeletingAccount={isDeletingAccount}
-        />
-      </SidebarFooter>
     </Sidebar>
   );
 }

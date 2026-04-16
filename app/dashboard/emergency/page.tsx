@@ -16,9 +16,7 @@ export default function EmergencyPage() {
     <>
       <section className="space-y-4">
         <Badge className="rounded-full px-4 py-1.5">Page 5</Badge>
-        <h1 className="text-3xl font-semibold text-slate-950">
-          Emergency Assistance
-        </h1>
+        <h1 className="text-3xl font-semibold text-slate-950">Emergency Help</h1>
         <p className="max-w-3xl text-base text-slate-600">
           High-risk sessions surface focused emergency actions. Lower-risk sessions
           show a calm status message instead of noisy controls.
@@ -51,7 +49,7 @@ export default function EmergencyPage() {
         </Button>
         <Button asChild className="rounded-full">
           <Link href="/dashboard/history">
-            Continue to Session History
+            Continue to History
             <ArrowRight className="size-4" />
           </Link>
         </Button>

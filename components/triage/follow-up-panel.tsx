@@ -71,7 +71,7 @@ export function FollowUpPanel({
   return (
     <Card className="border-slate-200/80 bg-white/95 shadow-sm">
       <CardHeader>
-        <CardTitle className="text-xl">Follow-up Question Flow</CardTitle>
+        <CardTitle className="text-xl">Questions</CardTitle>
         <CardDescription className="mt-2 text-base">
           One question appears at a time. Simple answers use guided choices so the
           triage flow stays fast, clear, and medically structured.

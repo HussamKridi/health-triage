@@ -9,13 +9,13 @@ export default function DashboardHomePage() {
   return (
     <>
       <section className="space-y-4">
-        <Badge className="rounded-full px-4 py-1.5">Dashboard overview</Badge>
+        <Badge className="rounded-full px-4 py-1.5">Overview</Badge>
         <h1 className="text-3xl font-semibold text-slate-950">
-          Modern health triage workspace
+          Your triage overview
         </h1>
         <p className="max-w-3xl text-base text-slate-600">
-          Use the sidebar to move between profile, live session entry, follow-up
-          questions, results, emergency tools, history, and a fast quick check-up
+          Move between your check-up, questions, results, emergency help, history,
+          and a fast quick check
           path.
         </p>
       </section>
@@ -23,7 +23,7 @@ export default function DashboardHomePage() {
       <section className="grid gap-6 xl:grid-cols-[1.1fr_0.9fr]">
         <Card className="border-slate-200/80 bg-white/95 shadow-sm">
           <CardHeader>
-            <CardTitle className="text-xl">Start with patient profile</CardTitle>
+            <CardTitle className="text-xl">Start with your profile</CardTitle>
             <CardDescription className="text-base">
               Persistent patient data is stored once and reused across every future
               triage session.
@@ -35,7 +35,7 @@ export default function DashboardHomePage() {
             </div>
             <Button asChild className="rounded-full">
               <Link href="/dashboard/profile">
-                Open Patient Profile Summary
+                Open Profile
                 <ArrowRight className="size-4" />
               </Link>
             </Button>
@@ -44,7 +44,7 @@ export default function DashboardHomePage() {
 
         <Card className="border-slate-200/80 bg-white/95 shadow-sm">
           <CardHeader>
-            <CardTitle className="text-xl">Quick Check-Up</CardTitle>
+            <CardTitle className="text-xl">Quick Check</CardTitle>
             <CardDescription className="text-base">
               Jump straight into fast live-vitals entry for a streamlined triage
               start.
@@ -54,7 +54,7 @@ export default function DashboardHomePage() {
             <Button asChild className="rounded-full">
               <Link href="/dashboard/quick-checkup">
                 <ShieldPlus className="size-4" />
-                Launch Quick Check-Up
+                Launch Quick Check
               </Link>
             </Button>
           </CardContent>
@@ -92,7 +92,7 @@ export default function DashboardHomePage() {
             </CardHeader>
             <CardContent>
               <Button asChild variant="outline" className="rounded-full">
-                <Link href={item.href}>Open page</Link>
+                <Link href={item.href}>Open</Link>
               </Button>
             </CardContent>
           </Card>

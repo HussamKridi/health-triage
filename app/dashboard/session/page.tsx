@@ -32,9 +32,7 @@ export default function SessionPage() {
     <>
       <section className="space-y-4">
         <Badge className="rounded-full px-4 py-1.5">Page 2</Badge>
-        <h1 className="text-3xl font-semibold text-slate-950">
-          Current Triage Session
-        </h1>
+        <h1 className="text-3xl font-semibold text-slate-950">Check-Up</h1>
         <p className="max-w-3xl text-base text-slate-600">
           Enter live session measurements only: SpO2, temperature, and heart rate.
           These values belong to the current session and can later come from device
@@ -59,7 +57,7 @@ export default function SessionPage() {
             {activeSession?.status === "questioning" ? (
               <Button asChild className="rounded-full">
                 <Link href="/dashboard/questions">
-                  Continue to Follow-up Question Flow
+                  Continue to Questions
                   <ArrowRight className="size-4" />
                 </Link>
               </Button>

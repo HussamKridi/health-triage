@@ -31,7 +31,7 @@ export function SessionHistory({
   return (
     <Card id="session-history" className="border-slate-200/80 bg-white/95 shadow-sm">
       <CardHeader>
-        <CardTitle className="text-xl">Session History</CardTitle>
+        <CardTitle className="text-xl">History</CardTitle>
         <CardDescription className="mt-2 text-base">
           Each triage session stores only live vitals and the resulting assessment.
           Persistent profile data stays separate in the user record.

@@ -40,7 +40,7 @@ const features = [
 
 export function FeaturesSection() {
   return (
-    <section className="px-6 py-20 lg:px-8">
+    <section id="learn-more" className="scroll-mt-24 px-6 py-20 lg:px-8">
       <div className="mx-auto w-full max-w-7xl">
         <div className="max-w-2xl">
           <Badge className="rounded-full border border-blue-100 bg-blue-50 px-4 py-1.5 text-blue-700">

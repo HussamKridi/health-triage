@@ -33,15 +33,17 @@ export function ProfileCard({
   onSave,
   isSaving,
   isLoading,
+  startEditing = false,
   footer,
 }: {
   profile: PatientProfile | null;
   onSave: (profile: PatientProfile) => Promise<string>;
   isSaving: boolean;
   isLoading: boolean;
+  startEditing?: boolean;
   footer?: React.ReactNode;
 }) {
-  const [isEditing, setIsEditing] = useState(false);
+  const [isEditing, setIsEditing] = useState(startEditing);
   const [form, setForm] = useState<PatientProfile>({
     age: profile?.age ?? null,
     gender: profile?.gender ?? null,
@@ -92,7 +94,7 @@ export function ProfileCard({
     <Card id="profile" className="border-slate-200/80 bg-white/95 shadow-sm">
       <CardHeader className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
         <div>
-          <CardTitle className="text-xl">Patient Profile Summary</CardTitle>
+          <CardTitle className="text-xl">Profile</CardTitle>
           <CardDescription className="mt-2 text-base">
             Persistent patient data is stored once per authenticated user and reused
             across future triage sessions.

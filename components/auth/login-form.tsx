@@ -10,7 +10,6 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
-  getFirebaseAuthDebugContext,
   getFirebaseAuthDiagnosticMessage,
   getFirebaseAuthErrorMessage,
   getFirebaseAuthTroubleshootingHint,
@@ -94,15 +93,14 @@ export function LoginForm() {
     }
   }
 
-  const firebaseDebugContext =
-    process.env.NODE_ENV !== "production" ? getFirebaseAuthDebugContext() : null;
-
   return (
-    <Card className="border-slate-200/80 shadow-none">
-      <CardContent className="p-0">
-        <form onSubmit={handleSubmit} className="space-y-5">
-          <div className="space-y-2">
-            <Label htmlFor="email">Email</Label>
+    <Card className="border-slate-200/80 shadow-[0_24px_60px_-28px_rgba(37,99,235,0.22)]">
+      <CardContent className="p-6 sm:p-8">
+        <form onSubmit={handleSubmit} className="space-y-6">
+          <div>
+            <Label htmlFor="email" className="mb-2 block text-sm font-medium text-slate-700">
+              Email
+            </Label>
             <Input
               id="email"
               type="email"
@@ -111,15 +109,21 @@ export function LoginForm() {
               value={email}
               onChange={(event) => setEmail(event.target.value)}
               disabled={isSubmitting}
+              className="border-slate-300 bg-white px-4 py-3"
             />
           </div>
 
-          <div className="space-y-2">
+          <div>
             <div className="flex items-center justify-between">
-              <Label htmlFor="password">Password</Label>
+              <Label
+                htmlFor="password"
+                className="mb-2 block text-sm font-medium text-slate-700"
+              >
+                Password
+              </Label>
               <button
                 type="button"
-                className="text-sm font-medium text-sky-700 transition hover:text-sky-800"
+                className="pb-2 text-sm font-medium text-sky-700 transition hover:text-sky-800"
                 onClick={handleForgotPassword}
                 disabled={isSubmitting || isSendingReset}
               >
@@ -134,6 +138,7 @@ export function LoginForm() {
               value={password}
               onChange={(event) => setPassword(event.target.value)}
               disabled={isSubmitting}
+              className="border-slate-300 bg-white px-4 py-3"
             />
           </div>
 
@@ -150,23 +155,16 @@ export function LoginForm() {
             </div>
           ) : null}
 
-          {firebaseDebugContext ? (
-            <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-xs text-slate-600">
-              Firebase project check: projectId `{firebaseDebugContext.projectId}`, authDomain{" "}
-              `{firebaseDebugContext.authDomain}`.
-            </div>
-          ) : null}
-
           <Button
             type="submit"
-            className="h-11 w-full rounded-2xl text-sm"
+            className="mt-2 h-12 w-full rounded-xl text-sm shadow-sm"
             disabled={isSubmitting}
           >
             {isSubmitting ? "Signing in..." : "Login"}
           </Button>
         </form>
 
-        <div className="mt-6 text-center text-sm text-slate-500">
+        <div className="mt-8 text-center text-sm text-slate-500">
           Don&apos;t have an account?{" "}
           <Link href="/signup" className="font-medium text-slate-900 hover:text-sky-700">
             Sign up

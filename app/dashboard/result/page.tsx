@@ -15,7 +15,7 @@ export default function ResultPage() {
     <>
       <section className="space-y-4">
         <Badge className="rounded-full px-4 py-1.5">Page 4</Badge>
-        <h1 className="text-3xl font-semibold text-slate-950">Triage Result</h1>
+        <h1 className="text-3xl font-semibold text-slate-950">Results</h1>
         <p className="max-w-3xl text-base text-slate-600">
           Review the final risk label, reasoning, advice, recommended next action,
           and baseline safety interpretation on a dedicated result page.
@@ -39,7 +39,7 @@ export default function ResultPage() {
         </Button>
         <Button asChild className="rounded-full">
           <Link href="/dashboard/emergency">
-            Continue to Emergency Assistance
+            Continue to Emergency Help
             <ArrowRight className="size-4" />
           </Link>
         </Button>

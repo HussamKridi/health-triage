@@ -16,7 +16,7 @@ export default function HistoryPage() {
     <>
       <section className="space-y-4">
         <Badge className="rounded-full px-4 py-1.5">Page 6</Badge>
-        <h1 className="text-3xl font-semibold text-slate-950">Session History</h1>
+        <h1 className="text-3xl font-semibold text-slate-950">History</h1>
         <p className="max-w-3xl text-base text-slate-600">
           Review previous sessions by date, vitals snapshot, current status, and final
           classification. Selecting a session updates the detailed review card below.
@@ -36,7 +36,7 @@ export default function HistoryPage() {
         <Button asChild variant="outline" className="rounded-full">
           <Link href="/dashboard/emergency">
             <ArrowLeft className="size-4" />
-            Back to Emergency Assistance
+            Back to Emergency Help
           </Link>
         </Button>
       </div>

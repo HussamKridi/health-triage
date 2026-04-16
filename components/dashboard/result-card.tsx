@@ -37,7 +37,7 @@ export function ResultCard({
   return (
     <Card id="triage-result" className="border-slate-200/80 bg-white/95 shadow-sm">
       <CardHeader>
-        <CardTitle className="text-xl">Triage Result</CardTitle>
+        <CardTitle className="text-xl">Results</CardTitle>
         <CardDescription className="mt-2 text-base">
           This panel keeps the explanation layer structured: local baseline
           assessment, safety override state, follow-up outcome, and final clinical
@@ -152,4 +152,3 @@ export function ResultCard({
     </Card>
   );
 }
-

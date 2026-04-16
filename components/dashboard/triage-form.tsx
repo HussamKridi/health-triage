@@ -86,7 +86,7 @@ export function TriageForm({
   return (
     <Card className="border-slate-200/80 bg-white/95 shadow-sm">
       <CardHeader>
-        <CardTitle className="text-xl">Current Triage Session</CardTitle>
+        <CardTitle className="text-xl">Check-Up</CardTitle>
         <CardDescription className="mt-2 text-base">
           Live measurements belong to this session only. They can be entered manually
           today and connected to Arduino or device input in future versions.

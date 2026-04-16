@@ -34,8 +34,8 @@ export function HomeNavbar() {
           </Button>
           {!loading && isAuthenticated ? (
             <Button asChild className="rounded-full px-5">
-              <Link href="/dashboard/profile">
-                Dashboard
+              <Link href="/dashboard">
+                Overview
                 <LayoutDashboard className="size-4" />
               </Link>
             </Button>
