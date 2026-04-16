@@ -53,11 +53,16 @@ export function SignupForm() {
   }
 
   return (
-    <Card className="border-slate-200/80 shadow-none">
-      <CardContent className="p-0">
-        <form onSubmit={handleSubmit} className="space-y-5">
-          <div className="space-y-2">
-            <Label htmlFor="signup-email">Email</Label>
+    <Card className="border-slate-200/80 shadow-[0_24px_60px_-28px_rgba(37,99,235,0.22)]">
+      <CardContent className="p-6 sm:p-8">
+        <form onSubmit={handleSubmit} className="space-y-6">
+          <div>
+            <Label
+              htmlFor="signup-email"
+              className="mb-2 block text-sm font-medium text-slate-700"
+            >
+              Email
+            </Label>
             <Input
               id="signup-email"
               type="email"
@@ -66,11 +71,17 @@ export function SignupForm() {
               value={email}
               onChange={(event) => setEmail(event.target.value)}
               disabled={isSubmitting}
+              className="border-slate-300 bg-white px-4 py-3"
             />
           </div>
 
-          <div className="space-y-2">
-            <Label htmlFor="signup-password">Password</Label>
+          <div>
+            <Label
+              htmlFor="signup-password"
+              className="mb-2 block text-sm font-medium text-slate-700"
+            >
+              Password
+            </Label>
             <Input
               id="signup-password"
               type="password"
@@ -79,11 +90,17 @@ export function SignupForm() {
               value={password}
               onChange={(event) => setPassword(event.target.value)}
               disabled={isSubmitting}
+              className="border-slate-300 bg-white px-4 py-3"
             />
           </div>
 
-          <div className="space-y-2">
-            <Label htmlFor="confirm-password">Confirm password</Label>
+          <div>
+            <Label
+              htmlFor="confirm-password"
+              className="mb-2 block text-sm font-medium text-slate-700"
+            >
+              Confirm password
+            </Label>
             <Input
               id="confirm-password"
               type="password"
@@ -92,6 +109,7 @@ export function SignupForm() {
               value={confirmPassword}
               onChange={(event) => setConfirmPassword(event.target.value)}
               disabled={isSubmitting}
+              className="border-slate-300 bg-white px-4 py-3"
             />
           </div>
 
@@ -103,14 +121,14 @@ export function SignupForm() {
 
           <Button
             type="submit"
-            className="mt-6 h-12 w-full rounded-xl border-0 bg-gradient-to-r from-blue-500 to-teal-500 py-3 text-sm font-medium text-white shadow-md shadow-black/10 transition hover:opacity-95 active:scale-[0.98] focus-visible:border-transparent focus-visible:ring-0 focus-visible:outline-none"
+            className="mt-2 h-12 w-full rounded-xl text-sm shadow-sm"
             disabled={isSubmitting}
           >
             {isSubmitting ? "Creating account..." : "Sign Up"}
           </Button>
         </form>
 
-        <div className="mt-6 text-center text-sm text-slate-500">
+        <div className="mt-8 text-center text-sm text-slate-500">
           Already have an account?{" "}
           <Link href="/login" className="font-medium text-slate-900 hover:text-sky-700">
             Login
