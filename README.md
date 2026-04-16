@@ -50,6 +50,17 @@ Add every variable from `.env.example` to `Vercel Project Settings -> Environmen
 - Do not put the Gemini key into client code, public env vars, or browser requests.
 - `.env.local` is only for local development and must never be committed.
 
+## Firebase Auth Debug Notes
+
+If hosted login fails with a `400` response from `identitytoolkit.googleapis.com`, check these first:
+
+- Firebase Email/Password sign-in must be enabled in Firebase Console.
+- Your Vercel env vars must all belong to the same Firebase project.
+- Your deployed Vercel domain must be added to Firebase Authentication authorized domains.
+- A project mismatch between `projectId`, `authDomain`, and `apiKey` can cause hosted auth failures even when the domain is authorized.
+
+In development, the login screen prints a safe Firebase config check using only `projectId` and `authDomain` so you can confirm the deployed app is pointed at the intended project.
+
 ## GitHub Publishing Safety
 
 Before pushing this repository publicly:

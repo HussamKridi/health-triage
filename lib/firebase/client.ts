@@ -11,6 +11,7 @@ let firebaseAuthInstance: Auth | null = null;
 let firebaseDbInstance: Firestore | null = null;
 let firebaseStorageInstance: FirebaseStorage | null = null;
 let firebaseFunctionsInstance: Functions | null = null;
+let hasLoggedFirebaseClientConfig = false;
 
 export function getFirebaseApp() {
   if (firebaseAppInstance) {
@@ -18,6 +19,19 @@ export function getFirebaseApp() {
   }
 
   const firebaseConfig = getFirebasePublicEnv();
+
+  if (
+    process.env.NODE_ENV !== "production" &&
+    typeof window !== "undefined" &&
+    !hasLoggedFirebaseClientConfig
+  ) {
+    console.info("[firebase] Client config check", {
+      projectId: firebaseConfig.projectId,
+      authDomain: firebaseConfig.authDomain,
+    });
+    hasLoggedFirebaseClientConfig = true;
+  }
+
   firebaseAppInstance =
     getApps().length > 0 ? getApp() : initializeApp(firebaseConfig);
 
@@ -26,6 +40,10 @@ export function getFirebaseApp() {
 
 export function getFirebaseProjectId() {
   return getFirebasePublicEnv().projectId;
+}
+
+export function getFirebaseAuthDomain() {
+  return getFirebasePublicEnv().authDomain;
 }
 
 export function getFirebaseAuth() {

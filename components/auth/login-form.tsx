@@ -10,7 +10,10 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
+  getFirebaseAuthDebugContext,
+  getFirebaseAuthDiagnosticMessage,
   getFirebaseAuthErrorMessage,
+  getFirebaseAuthTroubleshootingHint,
   logInWithEmail,
   sendUserPasswordReset,
 } from "@/lib/auth";
@@ -21,6 +24,7 @@ export function LoginForm() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
+  const [debugHint, setDebugHint] = useState("");
   const [success, setSuccess] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSendingReset, setIsSendingReset] = useState(false);
@@ -34,6 +38,7 @@ export function LoginForm() {
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setError("");
+    setDebugHint("");
     setSuccess("");
 
     if (!email.trim() || !password.trim()) {
@@ -48,6 +53,13 @@ export function LoginForm() {
       router.replace("/dashboard/profile");
     } catch (submitError) {
       setError(getFirebaseAuthErrorMessage(submitError));
+      setDebugHint(getFirebaseAuthTroubleshootingHint(submitError));
+
+      if (process.env.NODE_ENV !== "production") {
+        console.error("[auth] Login failed", {
+          diagnostic: getFirebaseAuthDiagnosticMessage(submitError),
+        });
+      }
     } finally {
       setIsSubmitting(false);
     }
@@ -55,6 +67,7 @@ export function LoginForm() {
 
   async function handleForgotPassword() {
     setError("");
+    setDebugHint("");
     setSuccess("");
 
     if (!email.trim()) {
@@ -69,10 +82,20 @@ export function LoginForm() {
       setSuccess("Password reset email sent. Please check your inbox.");
     } catch (resetError) {
       setError(getFirebaseAuthErrorMessage(resetError));
+      setDebugHint(getFirebaseAuthTroubleshootingHint(resetError));
+
+      if (process.env.NODE_ENV !== "production") {
+        console.error("[auth] Password reset failed", {
+          diagnostic: getFirebaseAuthDiagnosticMessage(resetError),
+        });
+      }
     } finally {
       setIsSendingReset(false);
     }
   }
+
+  const firebaseDebugContext =
+    process.env.NODE_ENV !== "production" ? getFirebaseAuthDebugContext() : null;
 
   return (
     <Card className="border-slate-200/80 shadow-none">
@@ -123,6 +146,14 @@ export function LoginForm() {
           {error ? (
             <div className="rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
               {error}
+              {debugHint ? <div className="mt-2 text-xs text-red-600">{debugHint}</div> : null}
+            </div>
+          ) : null}
+
+          {firebaseDebugContext ? (
+            <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-xs text-slate-600">
+              Firebase project check: projectId `{firebaseDebugContext.projectId}`, authDomain{" "}
+              `{firebaseDebugContext.authDomain}`.
             </div>
           ) : null}
 
