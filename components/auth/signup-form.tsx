@@ -103,7 +103,7 @@ export function SignupForm() {
 
           <Button
             type="submit"
-            className="h-11 w-full rounded-2xl text-sm"
+            className="mt-4 h-12 w-full rounded-xl border-0 bg-gradient-to-r from-blue-500 to-teal-500 text-sm font-medium text-white shadow-md transition hover:opacity-90 active:scale-[0.98] focus-visible:border-transparent focus-visible:ring-0 focus-visible:outline-none"
             disabled={isSubmitting}
           >
             {isSubmitting ? "Creating account..." : "Sign Up"}
