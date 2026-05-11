@@ -119,6 +119,38 @@ export function getFirebaseAuthErrorMessage(error: unknown) {
   return "Something went wrong. Please try again.";
 }
 
+export function getFirebasePasswordResetErrorMessage(error: unknown) {
+  const firebaseError = getFirebaseAuthError(error);
+
+  if (firebaseError?.code) {
+    switch (firebaseError.code) {
+      case "auth/invalid-email":
+        return "Please enter a valid email address.";
+      case "auth/missing-email":
+        return "Please enter your email address before requesting a reset link.";
+      case "auth/user-not-found":
+        return "No account was found for this email address.";
+      case "auth/too-many-requests":
+        return "Too many reset attempts. Please wait a moment and try again.";
+      case "auth/network-request-failed":
+        return "Network error. Check your connection and try again.";
+      case "auth/operation-not-allowed":
+        return "Email/password sign-in is not enabled for this Firebase project.";
+      case "auth/invalid-api-key":
+      case "auth/api-key-not-valid":
+        return "Firebase API key is invalid for the configured project.";
+      case "auth/app-not-authorized":
+        return "This domain is not authorized for password reset emails in this Firebase project.";
+      case "auth/configuration-not-found":
+        return "Firebase Authentication is not configured correctly for this project.";
+      default:
+        return "We could not send the reset email. Please try again.";
+    }
+  }
+
+  return "We could not send the reset email. Please try again.";
+}
+
 export function getFirebaseAuthDiagnosticMessage(error: unknown) {
   const firebaseError = getFirebaseAuthError(error);
   const code = firebaseError?.code ?? "unknown";

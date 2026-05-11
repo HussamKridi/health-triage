@@ -55,8 +55,10 @@ Add every variable from `.env.example` to `Vercel Project Settings -> Environmen
 If hosted login fails with a `400` response from `identitytoolkit.googleapis.com`, check these first:
 
 - Firebase Email/Password sign-in must be enabled in Firebase Console.
+- Password reset emails also require the Email/Password provider to be enabled.
 - Your Vercel env vars must all belong to the same Firebase project.
 - Your deployed Vercel domain must be added to Firebase Authentication authorized domains.
+- For password reset links, configure the Firebase Authentication email templates and authorized domains for every local or deployed domain that users will open from.
 - A project mismatch between `projectId`, `authDomain`, and `apiKey` can cause hosted auth failures even when the domain is authorized.
 
 In development, the login screen prints a safe Firebase config check using only `projectId` and `authDomain` so you can confirm the deployed app is pointed at the intended project.
@@ -95,6 +97,58 @@ Gemini requests are made only from the server through [app/api/triage/route.ts](
 - `lib/triage/orchestrator.ts` is marked `server-only`
 
 If `GEMINI_API_KEY` is missing, the app falls back to deterministic triage heuristics instead of exposing any secret or making insecure client-side calls.
+
+## Arduino / Web Serial Vitals
+
+The Check-Up page can read live vitals from an Arduino or serial sensor in browsers
+that support the Web Serial API, such as Chrome or Edge.
+
+- The website opens the serial port at `9600` baud.
+- Arduino code should use the same baud rate: `Serial.begin(9600);`
+- Send one complete reading per line with `Serial.println(...)`.
+- The preferred format is JSON:
+
+```cpp
+Serial.println("{\"spo2\":98,\"temperature\":36.8,\"heartRate\":76}");
+```
+
+The parser also accepts these safe fallback formats:
+
+```txt
+98,36.8,76
+SPO2:98,TEMP:36.8,HR:76
+spo2=98,temp=36.8,hr=76
+```
+
+Values are ignored if they are outside expected ranges:
+
+- SpO2: `0` to `100`
+- Temperature: `30` to `45` C
+- Heart rate: `20` to `250` bpm
+
+Minimal Arduino loop example:
+
+```cpp
+void setup() {
+  Serial.begin(9600);
+}
+
+void loop() {
+  int spo2 = 98;
+  float temperature = 36.8;
+  int heartRate = 76;
+
+  Serial.print("{\"spo2\":");
+  Serial.print(spo2);
+  Serial.print(",\"temperature\":");
+  Serial.print(temperature, 1);
+  Serial.print(",\"heartRate\":");
+  Serial.print(heartRate);
+  Serial.println("}");
+
+  delay(1000);
+}
+```
 
 ## Development
 

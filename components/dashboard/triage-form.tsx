@@ -50,11 +50,28 @@ type SerialNavigator = Navigator & {
   };
 };
 
+type SerialParseResult =
+  | {
+      ok: true;
+      vitals: LiveVitals;
+    }
+  | {
+      ok: false;
+      error: string;
+    };
+
 const initialVitals: TriageDraft = {
   spo2: "",
   temperature: "",
   heartRate: "",
 };
+
+// Arduino should send exactly one complete reading per line with Serial.println().
+// Preferred line: {"spo2":98,"temperature":36.8,"heartRate":76}
+// Also accepted: 98,36.8,76 or SPO2:98,TEMP:36.8,HR:76.
+const SERIAL_BAUD_RATE = 9600;
+const ARDUINO_FORMAT_EXAMPLE =
+  'Serial.println("{\\"spo2\\":98,\\"temperature\\":36.8,\\"heartRate\\":76}");';
 
 const emptyLiveVitals: LiveVitals = {
   spo2: null,
@@ -87,54 +104,156 @@ function normalizeLiveVitals(vitals: LiveVitals): TriageSessionVitals | null {
   };
 }
 
-function parseSerialLine(line: string): LiveVitals | null {
+function parseSerialLine(line: string): SerialParseResult {
   const trimmed = line.trim();
 
   if (!trimmed) {
+    return {
+      ok: false,
+      error: "Received an empty serial line.",
+    };
+  }
+
+  const parsedVitals =
+    parseJsonVitals(trimmed) ??
+    parseLabeledVitals(trimmed) ??
+    parseCsvVitals(trimmed);
+
+  if (!parsedVitals) {
+    return {
+      ok: false,
+      error: `Received device data, but it was not in a recognized format: "${trimmed}".`,
+    };
+  }
+
+  return validateSerialVitals(parsedVitals, trimmed);
+}
+
+function parseJsonVitals(line: string): LiveVitals | null {
+  try {
+    const parsed = JSON.parse(line) as Partial<
+      Record<
+        | "spo2"
+        | "spO2"
+        | "SPO2"
+        | "oxygen"
+        | "temperature"
+        | "temp"
+        | "TEMP"
+        | "heartRate"
+        | "heart_rate"
+        | "hr"
+        | "HR",
+        unknown
+      >
+    >;
+
+    return {
+      spo2: readNumericValue(
+        parsed.spo2 ?? parsed.spO2 ?? parsed.SPO2 ?? parsed.oxygen
+      ),
+      temperature: readNumericValue(
+        parsed.temperature ?? parsed.temp ?? parsed.TEMP
+      ),
+      heartRate: readNumericValue(
+        parsed.heartRate ?? parsed.heart_rate ?? parsed.hr ?? parsed.HR
+      ),
+    };
+  } catch {
+    return null;
+  }
+}
+
+function parseLabeledVitals(line: string): LiveVitals | null {
+  if (!/[=:]/.test(line)) {
     return null;
   }
 
-  try {
-    const parsed = JSON.parse(trimmed) as Partial<
-      Record<"spo2" | "temperature" | "temp" | "heartRate" | "hr", unknown>
-    >;
+  const fields = new Map<string, string>();
 
-    const vitals = {
-      spo2: readNumericValue(parsed.spo2),
-      temperature: readNumericValue(parsed.temperature ?? parsed.temp),
-      heartRate: readNumericValue(parsed.heartRate ?? parsed.hr),
-    };
+  for (const pair of line.split(",")) {
+    const match = pair.match(
+      /^\s*([a-zA-Z0-9_ -]+)\s*[:=]\s*([-+]?\d+(?:\.\d+)?)\s*$/
+    );
 
-    return hasAnyVital(vitals) ? vitals : null;
-  } catch {
-    const fields = new Map<string, string>();
-
-    for (const pair of trimmed.split(",")) {
-      const [rawKey, rawValue] = pair.split("=");
-      const key = rawKey?.trim().toLowerCase();
-      const value = rawValue?.trim();
-
-      if (key && value) {
-        fields.set(key, value);
-      }
+    if (match) {
+      fields.set(normalizeSerialKey(match[1]), match[2]);
     }
-
-    if (fields.size === 0) {
-      return null;
-    }
-
-    const vitals = {
-      spo2: readNumericValue(fields.get("spo2")),
-      temperature: readNumericValue(
-        fields.get("temperature") ?? fields.get("temp")
-      ),
-      heartRate: readNumericValue(
-        fields.get("heartrate") ?? fields.get("heart_rate") ?? fields.get("hr")
-      ),
-    };
-
-    return hasAnyVital(vitals) ? vitals : null;
   }
+
+  if (fields.size === 0) {
+    return null;
+  }
+
+  return {
+    spo2: readNumericValue(
+      fields.get("spo2") ?? fields.get("oxygen") ?? fields.get("o2")
+    ),
+    temperature: readNumericValue(
+      fields.get("temperature") ?? fields.get("temp")
+    ),
+    heartRate: readNumericValue(
+      fields.get("heartrate") ?? fields.get("heart_rate") ?? fields.get("hr")
+    ),
+  };
+}
+
+function parseCsvVitals(line: string): LiveVitals | null {
+  const values = line.split(",").map((value) => value.trim());
+
+  if (values.length !== 3 || values.some((value) => value === "")) {
+    return null;
+  }
+
+  return {
+    spo2: readNumericValue(values[0]),
+    temperature: readNumericValue(values[1]),
+    heartRate: readNumericValue(values[2]),
+  };
+}
+
+function validateSerialVitals(
+  vitals: LiveVitals,
+  rawLine: string
+): SerialParseResult {
+  if (!hasAnyVital(vitals)) {
+    return {
+      ok: false,
+      error: `No numeric vitals were found in serial line: "${rawLine}".`,
+    };
+  }
+
+  const invalidFields: string[] = [];
+
+  if (vitals.spo2 === null) {
+    invalidFields.push("SpO2 is missing");
+  } else if (vitals.spo2 < 0 || vitals.spo2 > 100) {
+    invalidFields.push("SpO2 must be between 0 and 100");
+  }
+
+  if (vitals.temperature === null) {
+    invalidFields.push("temperature is missing");
+  } else if (vitals.temperature < 30 || vitals.temperature > 45) {
+    invalidFields.push("temperature must be between 30 and 45 C");
+  }
+
+  if (vitals.heartRate === null) {
+    invalidFields.push("heart rate is missing");
+  } else if (vitals.heartRate < 20 || vitals.heartRate > 250) {
+    invalidFields.push("heart rate must be between 20 and 250 bpm");
+  }
+
+  if (invalidFields.length > 0) {
+    return {
+      ok: false,
+      error: `Invalid serial data "${rawLine}": ${invalidFields.join(", ")}.`,
+    };
+  }
+
+  return {
+    ok: true,
+    vitals,
+  };
 }
 
 function hasAnyVital(vitals: LiveVitals) {
@@ -156,6 +275,10 @@ function readNumericValue(value: unknown) {
   }
 
   return null;
+}
+
+function normalizeSerialKey(key: string) {
+  return key.trim().toLowerCase().replace(/[\s-]+/g, "_");
 }
 
 function getSerialNavigator() {
@@ -275,7 +398,7 @@ export function TriageForm({
     try {
       setConnectionStatus("connecting");
       const port = await serial.requestPort();
-      await port.open({ baudRate: 9600 });
+      await port.open({ baudRate: SERIAL_BAUD_RATE });
       portRef.current = port;
       isDisconnectingRef.current = false;
       setConnectionStatus("connected");
@@ -341,7 +464,13 @@ export function TriageForm({
           continue;
         }
 
-        buffer += decoder.decode(value, { stream: true });
+        const chunk = decoder.decode(value, { stream: true });
+
+        if (process.env.NODE_ENV !== "production") {
+          console.info("[serial] raw chunk", chunk);
+        }
+
+        buffer += chunk;
         const lines = buffer.split(/\r?\n/);
         buffer = lines.pop() ?? "";
 
@@ -377,21 +506,23 @@ export function TriageForm({
       return;
     }
 
+    if (process.env.NODE_ENV !== "production") {
+      console.info("[serial] line", trimmed);
+    }
+
     setReceivedLines((current) => [trimmed, ...current].slice(0, 5));
 
     const parsed = parseSerialLine(trimmed);
 
-    if (!parsed) {
-      setLastParseMessage(
-        "Received device data, but it was not in a recognized format."
-      );
+    if (!parsed.ok) {
+      setLastParseMessage(parsed.error);
       return;
     }
 
     setDeviceVitals((current) => ({
-      spo2: parsed.spo2 ?? current.spo2,
-      temperature: parsed.temperature ?? current.temperature,
-      heartRate: parsed.heartRate ?? current.heartRate,
+      spo2: parsed.vitals.spo2 ?? current.spo2,
+      temperature: parsed.vitals.temperature ?? current.temperature,
+      heartRate: parsed.vitals.heartRate ?? current.heartRate,
     }));
     setLastParseMessage("");
   }
@@ -558,6 +689,16 @@ export function TriageForm({
               </div>
             </CardHeader>
             <CardContent className="space-y-5">
+              <Alert className="border-sky-200 bg-sky-50 text-sky-800">
+                <AlertTitle>Expected Arduino output</AlertTitle>
+                <AlertDescription>
+                  Send one full line per reading at {SERIAL_BAUD_RATE} baud. Preferred:{" "}
+                  <code className="rounded bg-white px-1.5 py-0.5 font-mono text-xs">
+                    {ARDUINO_FORMAT_EXAMPLE}
+                  </code>
+                </AlertDescription>
+              </Alert>
+
               {!serialSupported ? (
                 <Alert className="border-amber-200 bg-amber-50 text-amber-800">
                   <AlertTitle>Serial unavailable</AlertTitle>
@@ -603,7 +744,7 @@ export function TriageForm({
                 </div>
                 <p className="mt-1 text-slate-600">
                   {connectionStatus === "connected"
-                    ? "Listening for serial data at 9600 baud."
+                    ? `Listening for serial data at ${SERIAL_BAUD_RATE} baud.`
                     : connectionStatus === "connecting"
                       ? "Waiting for browser device selection."
                       : connectionStatus === "disconnecting"

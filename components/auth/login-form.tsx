@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useState, type FormEvent } from "react";
+import { useEffect, useRef, useState, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
 
 import { useAuth } from "@/components/providers/auth-provider";
@@ -12,6 +12,7 @@ import { Label } from "@/components/ui/label";
 import {
   getFirebaseAuthDiagnosticMessage,
   getFirebaseAuthErrorMessage,
+  getFirebasePasswordResetErrorMessage,
   getFirebaseAuthTroubleshootingHint,
   logInWithEmail,
   sendUserPasswordReset,
@@ -20,6 +21,7 @@ import {
 export function LoginForm() {
   const router = useRouter();
   const { isAuthenticated, loading } = useAuth();
+  const emailInputRef = useRef<HTMLInputElement>(null);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
@@ -70,7 +72,8 @@ export function LoginForm() {
     setSuccess("");
 
     if (!email.trim()) {
-      setError("Enter your email address first to receive a reset link.");
+      setError("Please enter your email address before requesting a reset link.");
+      emailInputRef.current?.focus();
       return;
     }
 
@@ -80,7 +83,7 @@ export function LoginForm() {
       await sendUserPasswordReset(email.trim());
       setSuccess("Password reset email sent. Please check your inbox.");
     } catch (resetError) {
-      setError(getFirebaseAuthErrorMessage(resetError));
+      setError(getFirebasePasswordResetErrorMessage(resetError));
       setDebugHint(getFirebaseAuthTroubleshootingHint(resetError));
 
       if (process.env.NODE_ENV !== "production") {
@@ -102,13 +105,14 @@ export function LoginForm() {
               Email
             </Label>
             <Input
+              ref={emailInputRef}
               id="email"
               type="email"
               autoComplete="email"
               placeholder="you@example.com"
               value={email}
               onChange={(event) => setEmail(event.target.value)}
-              disabled={isSubmitting}
+              disabled={isSubmitting || isSendingReset}
               className="border-slate-300 bg-white px-4 py-3"
             />
           </div>
@@ -127,7 +131,7 @@ export function LoginForm() {
                 onClick={handleForgotPassword}
                 disabled={isSubmitting || isSendingReset}
               >
-                {isSendingReset ? "Sending reset..." : "Forgot password?"}
+                {isSendingReset ? "Sending..." : "Forgot password?"}
               </button>
             </div>
             <Input
