@@ -115,6 +115,7 @@ Serial.println("{\"spo2\":98,\"temperature\":36.8,\"heartRate\":76}");
 The parser also accepts these safe fallback formats:
 
 ```txt
+HR=76 SpO2=98 TempC=36.8
 98,36.8,76
 SPO2:98,TEMP:36.8,HR:76
 spo2=98,temp=36.8,hr=76
@@ -138,13 +139,12 @@ void loop() {
   float temperature = 36.8;
   int heartRate = 76;
 
-  Serial.print("{\"spo2\":");
-  Serial.print(spo2);
-  Serial.print(",\"temperature\":");
-  Serial.print(temperature, 1);
-  Serial.print(",\"heartRate\":");
+  Serial.print("HR=");
   Serial.print(heartRate);
-  Serial.println("}");
+  Serial.print(" SpO2=");
+  Serial.print(spo2);
+  Serial.print(" TempC=");
+  Serial.println(temperature, 1);
 
   delay(1000);
 }

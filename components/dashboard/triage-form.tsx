@@ -68,10 +68,11 @@ const initialVitals: TriageDraft = {
 
 // Arduino should send exactly one complete reading per line with Serial.println().
 // Preferred line: {"spo2":98,"temperature":36.8,"heartRate":76}
-// Also accepted: 98,36.8,76 or SPO2:98,TEMP:36.8,HR:76.
+// Also accepted: HR=76 SpO2=98 TempC=36.8, 98,36.8,76,
+// SPO2:98,TEMP:36.8,HR:76, or spo2=98,temp=36.8,hr=76.
 const SERIAL_BAUD_RATE = 9600;
 const ARDUINO_FORMAT_EXAMPLE =
-  'Serial.println("{\\"spo2\\":98,\\"temperature\\":36.8,\\"heartRate\\":76}");';
+  "HR=76 SpO2=98 TempC=36.8";
 
 const emptyLiveVitals: LiveVitals = {
   spo2: null,
@@ -171,14 +172,12 @@ function parseLabeledVitals(line: string): LiveVitals | null {
 
   const fields = new Map<string, string>();
 
-  for (const pair of line.split(",")) {
-    const match = pair.match(
-      /^\s*([a-zA-Z0-9_ -]+)\s*[:=]\s*([-+]?\d+(?:\.\d+)?)\s*$/
-    );
-
-    if (match) {
-      fields.set(normalizeSerialKey(match[1]), match[2]);
-    }
+  // Scan labeled values anywhere in the line so Arduino output can be comma
+  // separated or space separated, e.g. "HR=76 SpO2=98 TempC=36.8".
+  for (const match of line.matchAll(
+    /([a-zA-Z][a-zA-Z0-9_ -]*)\s*[:=]\s*([-+]?\d+(?:\.\d+)?)/g
+  )) {
+    fields.set(normalizeSerialKey(match[1]), match[2]);
   }
 
   if (fields.size === 0) {
@@ -190,7 +189,10 @@ function parseLabeledVitals(line: string): LiveVitals | null {
       fields.get("spo2") ?? fields.get("oxygen") ?? fields.get("o2")
     ),
     temperature: readNumericValue(
-      fields.get("temperature") ?? fields.get("temp")
+      fields.get("temperature") ??
+        fields.get("temp") ??
+        fields.get("tempc") ??
+        fields.get("temp_c")
     ),
     heartRate: readNumericValue(
       fields.get("heartrate") ?? fields.get("heart_rate") ?? fields.get("hr")
@@ -279,6 +281,14 @@ function readNumericValue(value: unknown) {
 
 function normalizeSerialKey(key: string) {
   return key.trim().toLowerCase().replace(/[\s-]+/g, "_");
+}
+
+function serialVitalsToDraft(vitals: LiveVitals): TriageDraft {
+  return {
+    spo2: vitals.spo2?.toString() ?? "",
+    temperature: vitals.temperature?.toString() ?? "",
+    heartRate: vitals.heartRate?.toString() ?? "",
+  };
 }
 
 function getSerialNavigator() {
@@ -519,11 +529,23 @@ export function TriageForm({
       return;
     }
 
+    if (process.env.NODE_ENV !== "production") {
+      console.info("[serial] parsed values", parsed.vitals);
+    }
+
     setDeviceVitals((current) => ({
       spo2: parsed.vitals.spo2 ?? current.spo2,
       temperature: parsed.vitals.temperature ?? current.temperature,
       heartRate: parsed.vitals.heartRate ?? current.heartRate,
     }));
+
+    const nextDraft = serialVitalsToDraft(parsed.vitals);
+    setDraft(nextDraft);
+
+    if (process.env.NODE_ENV !== "production") {
+      console.info("[serial] form fields updated", nextDraft);
+    }
+
     setLastParseMessage("");
   }
 
@@ -692,7 +714,7 @@ export function TriageForm({
               <Alert className="border-sky-200 bg-sky-50 text-sky-800">
                 <AlertTitle>Expected Arduino output</AlertTitle>
                 <AlertDescription>
-                  Send one full line per reading at {SERIAL_BAUD_RATE} baud. Preferred:{" "}
+                  Send one full line per reading at {SERIAL_BAUD_RATE} baud. Accepted:{" "}
                   <code className="rounded bg-white px-1.5 py-0.5 font-mono text-xs">
                     {ARDUINO_FORMAT_EXAMPLE}
                   </code>
