@@ -26,6 +26,12 @@ export type TriageSessionVitals = {
   heartRate: number;
 };
 
+export type LiveVitals = {
+  spo2: number | null;
+  temperature: number | null;
+  heartRate: number | null;
+};
+
 export type VitalBand = "stable" | "elevated" | "critical";
 
 export type TriageSignalSummary = {

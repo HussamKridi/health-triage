@@ -19,6 +19,7 @@
 
 # production
 /build
+/dist
 
 # misc
 .DS_Store
@@ -47,6 +48,7 @@ storage-debug.log*
 .env.development.local
 .env.production.local
 .env.test.local
+.env.*.local
 .env*.local
 .envrc
 
