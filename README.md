@@ -106,6 +106,9 @@ that support the Web Serial API, such as Chrome or Edge.
 - The website opens the serial port at `9600` baud.
 - Arduino code should use the same baud rate: `Serial.begin(9600);`
 - Send one complete reading per line with `Serial.println(...)`.
+- The first incoming line starts a 5-second reading window.
+- At the end of 5 seconds, the app confirms the last valid reading and fills the triage fields.
+- Confirmed values stay locked until the user presses `Retake reading`.
 - The preferred format is JSON:
 
 ```cpp
@@ -124,7 +127,7 @@ spo2=98,temp=36.8,hr=76
 Values are ignored if they are outside expected ranges:
 
 - SpO2: `0` to `100`
-- Temperature: `30` to `45` C
+- Temperature: `0` to `45` C for Arduino testing
 - Heart rate: `20` to `250` bpm
 
 Minimal Arduino loop example:

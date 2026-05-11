@@ -38,6 +38,8 @@ type SerialConnectionStatus =
   | "connected"
   | "disconnecting";
 
+type DeviceReadingStatus = "idle" | "reading" | "complete";
+
 type SerialPortLike = {
   readable: ReadableStream<Uint8Array> | null;
   open: (options: { baudRate: number }) => Promise<void>;
@@ -71,6 +73,7 @@ const initialVitals: TriageDraft = {
 // Also accepted: HR=76 SpO2=98 TempC=36.8, 98,36.8,76,
 // SPO2:98,TEMP:36.8,HR:76, or spo2=98,temp=36.8,hr=76.
 const SERIAL_BAUD_RATE = 9600;
+const READING_DURATION_SECONDS = 5;
 const ARDUINO_FORMAT_EXAMPLE =
   "HR=76 SpO2=98 TempC=36.8";
 
@@ -235,8 +238,8 @@ function validateSerialVitals(
 
   if (vitals.temperature === null) {
     invalidFields.push("temperature is missing");
-  } else if (vitals.temperature < 30 || vitals.temperature > 45) {
-    invalidFields.push("temperature must be between 30 and 45 C");
+  } else if (vitals.temperature < 0 || vitals.temperature > 45) {
+    invalidFields.push("temperature must be between 0 and 45 C");
   }
 
   if (vitals.heartRate === null) {
@@ -344,20 +347,31 @@ export function TriageForm({
   const [serialSupported, setSerialSupported] = useState(false);
   const [connectionStatus, setConnectionStatus] =
     useState<SerialConnectionStatus>("not-connected");
+  const [readingStatus, setReadingStatus] =
+    useState<DeviceReadingStatus>("idle");
+  const [readingCountdown, setReadingCountdown] = useState(
+    READING_DURATION_SECONDS
+  );
   const [deviceVitals, setDeviceVitals] = useState<LiveVitals>(emptyLiveVitals);
   const [receivedLines, setReceivedLines] = useState<string[]>([]);
   const [lastParseMessage, setLastParseMessage] = useState("");
   const portRef = useRef<SerialPortLike | null>(null);
   const readerRef = useRef<ReadableStreamDefaultReader<Uint8Array> | null>(null);
   const isDisconnectingRef = useRef(false);
+  const readingStatusRef = useRef<DeviceReadingStatus>("idle");
+  const readingTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const latestValidReadingRef = useRef<LiveVitals | null>(null);
 
   const hasCompleteDeviceVitals = normalizeLiveVitals(deviceVitals) !== null;
+  const canUseConfirmedDeviceVitals =
+    readingStatus === "complete" && hasCompleteDeviceVitals;
 
   useEffect(() => {
     setSerialSupported(Boolean(getSerialNavigator()?.serial));
 
     return () => {
       isDisconnectingRef.current = true;
+      clearReadingTimer();
       void readerRef.current?.cancel();
       void portRef.current?.close();
     };
@@ -394,6 +408,71 @@ export function TriageForm({
     }));
   }
 
+  function updateReadingStatus(status: DeviceReadingStatus) {
+    readingStatusRef.current = status;
+    setReadingStatus(status);
+  }
+
+  function clearReadingTimer() {
+    if (readingTimerRef.current) {
+      clearInterval(readingTimerRef.current);
+      readingTimerRef.current = null;
+    }
+  }
+
+  function startReadingWindow() {
+    clearReadingTimer();
+    latestValidReadingRef.current = null;
+    setDeviceError("");
+    setLastParseMessage("");
+    setReadingCountdown(READING_DURATION_SECONDS);
+    updateReadingStatus("reading");
+
+    let remainingSeconds = READING_DURATION_SECONDS;
+
+    readingTimerRef.current = setInterval(() => {
+      remainingSeconds -= 1;
+      setReadingCountdown(Math.max(remainingSeconds, 0));
+
+      if (remainingSeconds <= 0) {
+        clearReadingTimer();
+        finishReadingWindow();
+      }
+    }, 1000);
+  }
+
+  function finishReadingWindow() {
+    const finalReading = latestValidReadingRef.current;
+    updateReadingStatus("complete");
+
+    if (!finalReading || !normalizeLiveVitals(finalReading)) {
+      setDeviceError(
+        "No valid device reading received. Please check Arduino output format."
+      );
+
+      if (process.env.NODE_ENV !== "production") {
+        console.info("[serial] final confirmed reading", null);
+      }
+
+      return;
+    }
+
+    const nextDraft = serialVitalsToDraft(finalReading);
+    setDeviceVitals(finalReading);
+    setDraft(nextDraft);
+    setDeviceError("");
+    setLastParseMessage("");
+
+    if (process.env.NODE_ENV !== "production") {
+      console.info("[serial] final confirmed reading", finalReading);
+      console.info("[serial] form fields updated", nextDraft);
+    }
+  }
+
+  function handleRetakeReading() {
+    startReadingWindow();
+  }
+
   async function connectDevice() {
     setDeviceError("");
     setLastParseMessage("");
@@ -411,6 +490,9 @@ export function TriageForm({
       await port.open({ baudRate: SERIAL_BAUD_RATE });
       portRef.current = port;
       isDisconnectingRef.current = false;
+      latestValidReadingRef.current = null;
+      updateReadingStatus("idle");
+      setReadingCountdown(READING_DURATION_SECONDS);
       setConnectionStatus("connected");
       void readDeviceLines(port);
     } catch (error) {
@@ -444,6 +526,10 @@ export function TriageForm({
     } catch {
       setDeviceError("The device disconnected before the port could close cleanly.");
     } finally {
+      clearReadingTimer();
+      latestValidReadingRef.current = null;
+      updateReadingStatus("idle");
+      setReadingCountdown(READING_DURATION_SECONDS);
       readerRef.current = null;
       portRef.current = null;
       setConnectionStatus("not-connected");
@@ -522,6 +608,10 @@ export function TriageForm({
 
     setReceivedLines((current) => [trimmed, ...current].slice(0, 5));
 
+    if (readingStatusRef.current === "idle") {
+      startReadingWindow();
+    }
+
     const parsed = parseSerialLine(trimmed);
 
     if (!parsed.ok) {
@@ -533,17 +623,14 @@ export function TriageForm({
       console.info("[serial] parsed values", parsed.vitals);
     }
 
-    setDeviceVitals((current) => ({
-      spo2: parsed.vitals.spo2 ?? current.spo2,
-      temperature: parsed.vitals.temperature ?? current.temperature,
-      heartRate: parsed.vitals.heartRate ?? current.heartRate,
-    }));
+    if (readingStatusRef.current !== "reading") {
+      return;
+    }
 
-    const nextDraft = serialVitalsToDraft(parsed.vitals);
-    setDraft(nextDraft);
+    latestValidReadingRef.current = parsed.vitals;
 
     if (process.env.NODE_ENV !== "production") {
-      console.info("[serial] form fields updated", nextDraft);
+      console.info("[serial] latest valid reading", parsed.vitals);
     }
 
     setLastParseMessage("");
@@ -627,7 +714,7 @@ export function TriageForm({
                       <Input
                         id="temperature"
                         type="number"
-                        min="30"
+                        min="0"
                         max="45"
                         step="0.1"
                         className="h-11 pl-11"
@@ -775,6 +862,23 @@ export function TriageForm({
                 </p>
               </div>
 
+              <div className="rounded-lg border border-slate-200 bg-slate-50 px-4 py-3 text-sm">
+                <div className="font-medium text-slate-950">
+                  {readingStatus === "reading"
+                    ? `Reading device data... ${readingCountdown}`
+                    : readingStatus === "complete"
+                      ? "Reading complete"
+                      : "Waiting for device data"}
+                </div>
+                <p className="mt-1 leading-6 text-slate-600">
+                  {readingStatus === "reading"
+                    ? "The app is collecting incoming serial lines and will confirm the last valid reading after 5 seconds."
+                    : readingStatus === "complete"
+                      ? "Confirmed readings are locked until you retake the measurement."
+                      : "The 5-second reading timer starts when the next serial line arrives."}
+                </p>
+              </div>
+
               <div className="grid gap-3 sm:grid-cols-3">
                 <MetricCard label="SpO2" value={deviceVitals.spo2} unit="%" />
                 <MetricCard
@@ -824,14 +928,32 @@ export function TriageForm({
                 </p>
               ) : null}
 
-              <Button
-                type="button"
-                className="h-11 rounded-full px-6"
-                disabled={disabled || isSubmitting || !hasCompleteDeviceVitals}
-                onClick={handleUseDeviceValues}
-              >
-                {isSubmitting ? "Running triage..." : "Use Device Values"}
-              </Button>
+              <div className="flex flex-col gap-3 sm:flex-row">
+                <Button
+                  type="button"
+                  className="h-11 rounded-full px-6"
+                  disabled={
+                    disabled || isSubmitting || !canUseConfirmedDeviceVitals
+                  }
+                  onClick={handleUseDeviceValues}
+                >
+                  {isSubmitting
+                    ? "Running triage..."
+                    : "Use these readings / Continue"}
+                </Button>
+
+                {readingStatus === "complete" ? (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    className="h-11 rounded-full px-6"
+                    disabled={connectionStatus !== "connected"}
+                    onClick={handleRetakeReading}
+                  >
+                    Retake reading
+                  </Button>
+                ) : null}
+              </div>
             </CardContent>
           </Card>
         </div>
