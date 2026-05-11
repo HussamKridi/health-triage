@@ -74,9 +74,25 @@ function getConcerningAnswerReasons(
       }
 
       if (
+        questionId === "chest-pain" ||
         questionId === "breathing-danger" ||
         questionId === "respiratory_danger"
       ) {
+        if (questionId === "chest-pain" && answerValue === "yes") {
+          return [
+            {
+              title: "Chest pain or pressure reported",
+              detail:
+                "The safety questions reported current chest pain or chest pressure.",
+              patientMeaning:
+                "Chest pain or pressure can be a warning sign involving the heart, lungs, or circulation and should be treated cautiously.",
+              severity: "critical",
+              source: "answers",
+              icon: <HeartPulse className="size-5" />,
+            },
+          ];
+        }
+
         if (answerValue === "significant") {
           return [
             {
@@ -106,6 +122,69 @@ function getConcerningAnswerReasons(
             },
           ];
         }
+      }
+
+      if (questionId === "breathing-difficulty" && answerValue === "yes") {
+        return [
+          {
+            title: "Breathing difficulty reported",
+            detail:
+              "The safety questions reported difficulty breathing or shortness of breath.",
+            patientMeaning:
+              "Breathing difficulty can become urgent, especially when paired with low oxygen levels, chest symptoms, or worsening illness.",
+            severity: "critical",
+            source: "answers",
+            icon: <Wind className="size-5" />,
+          },
+        ];
+      }
+
+      if (questionId === "faint-confused-dizzy" && answerValue === "yes") {
+        return [
+          {
+            title: "Fainting, confusion, or severe dizziness reported",
+            detail:
+              "The safety questions reported fainting, confusion, or severe dizziness recently.",
+            patientMeaning:
+              "These symptoms can suggest a circulation, hydration, oxygen, or neurological problem that needs prompt attention.",
+            severity: "critical",
+            source: "answers",
+            icon: <AlertTriangle className="size-5" />,
+          },
+        ];
+      }
+
+      if (
+        questionId === "severe-pain-bleeding-injury" &&
+        answerValue === "yes"
+      ) {
+        return [
+          {
+            title: "Severe pain, heavy bleeding, or serious injury reported",
+            detail:
+              "The safety questions reported severe pain, heavy bleeding, or a serious injury.",
+            patientMeaning:
+              "These symptoms can require urgent in-person assessment even when vital signs look stable.",
+            severity: "critical",
+            source: "answers",
+            icon: <Siren className="size-5" />,
+          },
+        ];
+      }
+
+      if (questionId === "sudden-worsening" && answerValue === "yes") {
+        return [
+          {
+            title: "Symptoms suddenly worsened today",
+            detail:
+              "The safety questions reported that symptoms suddenly became much worse today.",
+            patientMeaning:
+              "A sudden change can mean the condition is evolving and should be assessed more cautiously.",
+            severity: "elevated",
+            source: "answers",
+            icon: <Siren className="size-5" />,
+          },
+        ];
       }
 
       if (questionId === "infection-duration") {
@@ -265,6 +344,18 @@ function getHighRiskReasons(session: TriageSession): HighRiskReason[] {
   }
 
   reasons.push(...getConcerningAnswerReasons(session.conversationHistory));
+
+  if ((session.localAssessment.signals.safetyYesCount ?? 0) >= 3) {
+    reasons.push({
+      title: "Multiple safety symptoms reported",
+      detail: `${session.localAssessment.signals.safetyYesCount} of 5 required safety questions were answered Yes.`,
+      patientMeaning:
+        "Several warning symptoms together make the session more concerning, even if a single symptom might be less specific.",
+      severity: "critical",
+      source: "answers",
+      icon: <ShieldAlert className="size-5" />,
+    });
+  }
 
   if (
     reasons.length === 0 &&
@@ -452,7 +543,8 @@ export function ResultCard({
                   <span className="font-medium text-slate-900">Signals:</span>{" "}
                   SpO2 {localAssessment?.signals.spo2Band}, temperature{" "}
                   {localAssessment?.signals.temperatureBand}, heart rate{" "}
-                  {localAssessment?.signals.heartRateBand}.
+                  {localAssessment?.signals.heartRateBand}, safety yes answers{" "}
+                  {localAssessment?.signals.safetyYesCount ?? 0}/5.
                 </div>
                 {finalResult ? (
                   <>

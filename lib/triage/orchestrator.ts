@@ -10,6 +10,7 @@ import { requestGeminiTriageDecision } from "@/lib/gemini";
 import {
   buildDiagnosisDurationQuestion,
   buildFallbackDecision,
+  buildFallbackFinalResult,
   shouldAskDiagnosisDuration,
 } from "@/lib/triage/fallback";
 
@@ -83,6 +84,32 @@ function validateDecision(
   };
 }
 
+function validateFinalDecision(
+  decision: TriageDecision | null
+): TriageDecision | null {
+  if (decision?.kind !== "final") {
+    return null;
+  }
+
+  const finalResult = decision.finalResult as FinalTriageResult | undefined;
+  if (
+    !finalResult?.riskLabel ||
+    !finalResult.reasoning ||
+    !finalResult.advice ||
+    !finalResult.recommendedNextAction
+  ) {
+    return null;
+  }
+
+  return {
+    kind: "final",
+    finalResult: {
+      ...finalResult,
+      finalSource: "gemini",
+    },
+  };
+}
+
 export async function orchestrateTriageDecision(
   payload: GeminiTriageRequest
 ): Promise<TriageDecision> {
@@ -100,6 +127,29 @@ export async function orchestrateTriageDecision(
         disagreement: false,
         finalSource: "baseline",
       },
+    };
+  }
+
+  if (payload.safetyResponses) {
+    const firstFinalAttempt = validateFinalDecision(
+      await requestGeminiTriageDecision(payload)
+    );
+
+    if (firstFinalAttempt) {
+      return firstFinalAttempt;
+    }
+
+    const secondFinalAttempt = validateFinalDecision(
+      await requestGeminiTriageDecision(payload)
+    );
+
+    if (secondFinalAttempt) {
+      return secondFinalAttempt;
+    }
+
+    return {
+      kind: "final",
+      finalResult: buildFallbackFinalResult(payload),
     };
   }
 

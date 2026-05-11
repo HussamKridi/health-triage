@@ -5,27 +5,26 @@ import { useRouter } from "next/navigation";
 import { ArrowLeft, ArrowRight } from "lucide-react";
 
 import { useDashboardData } from "@/components/dashboard/dashboard-provider";
-import { FollowUpPanel } from "@/components/triage/follow-up-panel";
+import { SafetyQuestionsPanel } from "@/components/triage/safety-questions-panel";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 
 export default function QuestionsPage() {
   const router = useRouter();
-  const { activeSession, submitAnswer, isSubmittingAnswer } = useDashboardData();
+  const { activeSession, submitSafetyResponses, isSubmittingAnswer } =
+    useDashboardData();
 
-  async function handleSubmitAnswer(answerValue: string, answerLabel: string) {
-    const session = await submitAnswer(answerValue, answerLabel);
+  async function handleSubmitSafetyResponses(
+    responses: Parameters<typeof submitSafetyResponses>[0]
+  ) {
+    const session = await submitSafetyResponses(responses);
 
     if (!session) {
       return;
     }
 
-    router.push(
-      session.status === "completed"
-        ? "/dashboard/result"
-        : "/dashboard/questions"
-    );
+    router.push("/dashboard/result");
   }
 
   return (
@@ -55,9 +54,10 @@ export default function QuestionsPage() {
         </Card>
       )}
 
-      <FollowUpPanel
+      <SafetyQuestionsPanel
+        key={activeSession?.id ?? "no-session"}
         session={activeSession}
-        onSubmitAnswer={handleSubmitAnswer}
+        onSubmit={handleSubmitSafetyResponses}
         isSubmitting={isSubmittingAnswer}
         footer={
           <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">

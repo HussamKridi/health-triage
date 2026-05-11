@@ -156,14 +156,16 @@ export function getFallbackQuestion(payload: GeminiTriageRequest) {
 export function buildFallbackFinalResult(
   payload: GeminiTriageRequest
 ): FinalTriageResult {
-  const highRisk = payload.localAssessment.usedSafetyOverride;
+  const highRisk =
+    payload.localAssessment.usedSafetyOverride ||
+    payload.localAssessment.riskLabel === "High";
 
   return {
     riskLabel: highRisk ? "High" : "Low",
-    isCrucial: highRisk,
+    isCrucial: payload.localAssessment.isCrucial,
     reasoning: highRisk
-      ? "A conservative safety override was triggered by the measured vitals, so the session is being finalized as high risk without waiting for more follow-up."
-      : "Gemini follow-up was unavailable, so the session was finalized using the local baseline assessment and conservative fallback rules.",
+      ? payload.localAssessment.summary
+      : "Gemini follow-up was unavailable, so the session was finalized using the local baseline assessment, fixed safety answers, and conservative fallback rules.",
     advice: highRisk
       ? "Seek urgent in-person evaluation immediately and do not delay emergency support if symptoms escalate."
       : "Monitor symptoms closely, rest, hydrate, and seek medical review if symptoms worsen or new severe symptoms appear.",

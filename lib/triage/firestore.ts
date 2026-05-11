@@ -22,6 +22,7 @@ import type {
   PatientProfile,
   TriageConversationTurn,
   TriageQuestion,
+  TriageSafetyResponses,
   TriageSession,
   TriageSessionStatus,
   TriageSessionVitals,
@@ -190,6 +191,8 @@ function mapSession(item: { id: string; data: () => Record<string, unknown> }): 
       heartRate: Number(data.heartRate ?? 0),
     },
     localAssessment: data.localAssessment as LocalAssessment,
+    safetyResponses:
+      (data.safetyResponses as TriageSafetyResponses | null | undefined) ?? null,
     currentQuestion: (data.currentQuestion as TriageQuestion | null) ?? null,
     finalResult: (data.finalResult as FinalTriageResult | null) ?? null,
     conversationHistory: mapConversationTurn(data.conversationHistory),
@@ -218,6 +221,7 @@ export async function createTriageSession(
   uid: string,
   vitals: TriageSessionVitals,
   localAssessment: LocalAssessment,
+  safetyResponses: TriageSafetyResponses | null,
   conversationHistory: TriageConversationTurn[],
   status: TriageSessionStatus,
   currentQuestion: TriageQuestion | null,
@@ -234,6 +238,7 @@ export async function createTriageSession(
     heartRate: vitals.heartRate,
     status,
     localAssessment,
+    safetyResponses,
     currentQuestion,
     finalResult,
     conversationHistory,
@@ -247,6 +252,7 @@ export async function createTriageSession(
     vitals,
     status,
     localAssessment,
+    safetyResponses,
     currentQuestion,
     finalResult,
     conversationHistory,
@@ -260,6 +266,8 @@ export async function updateTriageSession(
   sessionId: string,
   patch: {
     status: TriageSessionStatus;
+    localAssessment?: LocalAssessment;
+    safetyResponses?: TriageSafetyResponses | null;
     currentQuestion: TriageQuestion | null;
     finalResult: FinalTriageResult | null;
     conversationHistory: TriageConversationTurn[];
@@ -271,6 +279,10 @@ export async function updateTriageSession(
 
   await updateDoc(createSessionDocRef(uid, sessionId), {
     status: patch.status,
+    ...(patch.localAssessment ? { localAssessment: patch.localAssessment } : {}),
+    ...(patch.safetyResponses !== undefined
+      ? { safetyResponses: patch.safetyResponses }
+      : {}),
     currentQuestion: patch.currentQuestion,
     finalResult: patch.finalResult,
     conversationHistory: patch.conversationHistory,

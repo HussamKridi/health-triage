@@ -26,6 +26,27 @@ export type TriageSessionVitals = {
   heartRate: number;
 };
 
+export type TriageSafetyQuestionId =
+  | "chest-pain"
+  | "breathing-difficulty"
+  | "faint-confused-dizzy"
+  | "severe-pain-bleeding-injury"
+  | "sudden-worsening";
+
+export type TriageSafetyAnswerValue = "yes" | "no";
+
+export type TriageSafetyAnswer = {
+  questionId: TriageSafetyQuestionId;
+  questionText: string;
+  answerValue: TriageSafetyAnswerValue;
+  answerLabel: "Yes" | "No";
+};
+
+export type TriageSafetyResponses = {
+  answers: TriageSafetyAnswer[];
+  notes: string;
+};
+
 export type LiveVitals = {
   spo2: number | null;
   temperature: number | null;
@@ -42,6 +63,9 @@ export type TriageSignalSummary = {
   senior: boolean;
   underweight: boolean;
   obesity: boolean;
+  chestPain: boolean;
+  breathingDifficulty: boolean;
+  safetyYesCount: number;
   spo2Band: VitalBand;
   temperatureBand: VitalBand;
   heartRateBand: VitalBand;
@@ -105,6 +129,7 @@ export type TriageSession = {
   status: TriageSessionStatus;
   vitals: TriageSessionVitals;
   localAssessment: LocalAssessment;
+  safetyResponses: TriageSafetyResponses | null;
   currentQuestion: TriageQuestion | null;
   finalResult: FinalTriageResult | null;
   conversationHistory: TriageConversationTurn[];
@@ -126,5 +151,6 @@ export type GeminiTriageRequest = {
   profile: PatientProfile;
   vitals: TriageSessionVitals;
   localAssessment: LocalAssessment;
+  safetyResponses: TriageSafetyResponses | null;
   conversationHistory: TriageConversationTurn[];
 };

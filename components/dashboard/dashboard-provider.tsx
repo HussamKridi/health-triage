@@ -17,6 +17,7 @@ import {
   getFirebaseAuthErrorMessage,
 } from "@/lib/auth";
 import { buildLocalAssessment } from "@/lib/triage/engine";
+import { SAFETY_TRIAGE_QUESTIONS } from "@/lib/triage/safety-questions";
 import {
   createTriageSession,
   deleteUserClinicalData,
@@ -31,6 +32,7 @@ import type {
   FinalTriageResult,
   GeminiTriageRequest,
   PatientProfile,
+  TriageSafetyResponses,
   TriageConversationTurn,
   TriageDecision,
   TriageSession,
@@ -57,6 +59,9 @@ type DashboardContextValue = {
   selectSession: (sessionId: string) => void;
   saveProfile: (profile: PatientProfile) => Promise<string>;
   runTriage: (vitals: TriageSessionVitals) => Promise<TriageSession | null>;
+  submitSafetyResponses: (
+    responses: TriageSafetyResponses
+  ) => Promise<TriageSession | null>;
   submitAnswer: (answerValue: string, answerLabel: string) => Promise<TriageSession | null>;
   deleteAccount: () => Promise<void>;
   reloadDashboard: () => Promise<void>;
@@ -243,36 +248,16 @@ export function DashboardProvider({ children }: { children: ReactNode }) {
 
       try {
         const localAssessment = buildLocalAssessment(patientProfile, vitals);
-        const decision = await getTriageDecision({
-          profile: patientProfile,
-          vitals,
-          localAssessment,
-          conversationHistory: [],
-        });
-
-        const conversationHistory =
-          decision.kind === "question"
-            ? [
-                makeTurn("assistant", "question", decision.question.questionText, {
-                  questionId: decision.question.id,
-                  inputType: decision.question.inputType,
-                }),
-              ]
-            : [];
-
-        const finalResult =
-          decision.kind === "final"
-            ? applyDisagreement(decision.finalResult, localAssessment.riskLabel)
-            : null;
 
         const createdSession = await createTriageSession(
           user.uid,
           vitals,
           localAssessment,
-          conversationHistory,
-          decision.kind === "question" ? "questioning" : "completed",
-          decision.kind === "question" ? decision.question : null,
-          finalResult
+          null,
+          [],
+          "questioning",
+          null,
+          null
         );
 
         setSessions((current) => [createdSession, ...current].slice(0, 10));
@@ -286,6 +271,110 @@ export function DashboardProvider({ children }: { children: ReactNode }) {
       }
     },
     [patientProfile, user]
+  );
+
+  const submitSafetyResponses = useCallback(
+    async (responses: TriageSafetyResponses) => {
+      if (!user || !patientProfile || !activeSession) {
+        return null;
+      }
+
+      setIsSubmittingAnswer(true);
+      setDashboardError("");
+
+      try {
+        const nextLocalAssessment = buildLocalAssessment(
+          patientProfile,
+          activeSession.vitals,
+          responses
+        );
+
+        const safetyConversation = responses.answers.flatMap((answer) => [
+          makeTurn("assistant", "question", answer.questionText, {
+            questionId: answer.questionId,
+            inputType: "boolean",
+          }),
+          makeTurn("user", "answer", answer.answerLabel, {
+            questionId: answer.questionId,
+            inputType: "boolean",
+            answerValue: answer.answerValue,
+          }),
+        ]);
+
+        const notesTurn =
+          responses.notes.trim() !== ""
+            ? [
+                makeTurn("user", "answer", responses.notes.trim(), {
+                  questionId: "additional-symptoms-notes",
+                  inputType: "text",
+                  answerValue: responses.notes.trim(),
+                }),
+              ]
+            : [];
+
+        const nextConversationHistory = [
+          ...activeSession.conversationHistory.filter(
+            (turn) =>
+              !SAFETY_TRIAGE_QUESTIONS.some(
+                (question) => question.id === turn.questionId
+              ) && turn.questionId !== "additional-symptoms-notes"
+          ),
+          ...safetyConversation,
+          ...notesTurn,
+        ];
+
+        const decision = await getTriageDecision({
+          profile: patientProfile,
+          vitals: activeSession.vitals,
+          localAssessment: nextLocalAssessment,
+          safetyResponses: responses,
+          conversationHistory: nextConversationHistory,
+        });
+
+        if (decision.kind !== "final") {
+          throw new Error("The fixed triage questions must produce a final result.");
+        }
+
+        const nextSession = {
+          ...activeSession,
+          status: "completed" as const,
+          localAssessment: nextLocalAssessment,
+          safetyResponses: responses,
+          currentQuestion: null,
+          finalResult: applyDisagreement(
+            decision.finalResult,
+            nextLocalAssessment.riskLabel
+          ),
+          conversationHistory: nextConversationHistory,
+          updatedAt: new Date(),
+        };
+
+        await updateTriageSession(user.uid, activeSession.id, {
+          status: nextSession.status,
+          localAssessment: nextSession.localAssessment,
+          safetyResponses: nextSession.safetyResponses,
+          currentQuestion: nextSession.currentQuestion,
+          finalResult: nextSession.finalResult,
+          conversationHistory: nextSession.conversationHistory,
+        });
+
+        setSessions((current) =>
+          current.map((session) =>
+            session.id === nextSession.id ? nextSession : session
+          )
+        );
+        setSelectedSessionId(nextSession.id);
+        return nextSession;
+      } catch {
+        setDashboardError(
+          "We couldn't finish the safety questions. Please review the answers and try again."
+        );
+        return null;
+      } finally {
+        setIsSubmittingAnswer(false);
+      }
+    },
+    [activeSession, patientProfile, user]
   );
 
   const submitAnswer = useCallback(
@@ -310,6 +399,7 @@ export function DashboardProvider({ children }: { children: ReactNode }) {
           profile: patientProfile,
           vitals: activeSession.vitals,
           localAssessment: activeSession.localAssessment,
+          safetyResponses: activeSession.safetyResponses,
           conversationHistory: nextConversationHistory,
         });
 
@@ -427,6 +517,7 @@ export function DashboardProvider({ children }: { children: ReactNode }) {
       selectSession: setSelectedSessionId,
       saveProfile,
       runTriage,
+      submitSafetyResponses,
       submitAnswer,
       deleteAccount,
       reloadDashboard,
@@ -449,6 +540,7 @@ export function DashboardProvider({ children }: { children: ReactNode }) {
     saveProfile,
     selectedSessionId,
     sessions,
+    submitSafetyResponses,
     submitAnswer,
     user,
   ]);
