@@ -74,6 +74,8 @@ const initialVitals: TriageDraft = {
 // SPO2:98,TEMP:36.8,HR:76, or spo2=98,temp=36.8,hr=76.
 const SERIAL_BAUD_RATE = 9600;
 const READING_DURATION_SECONDS = 5;
+// Temporary +10°C calibration offset applied because the sensor currently reads about 10°C too low.
+const TEMP_CALIBRATION_OFFSET = 10;
 const ARDUINO_FORMAT_EXAMPLE =
   "HR=76 SpO2=98 TempC=36.8";
 
@@ -130,7 +132,23 @@ function parseSerialLine(line: string): SerialParseResult {
     };
   }
 
-  return validateSerialVitals(parsedVitals, trimmed);
+  return validateSerialVitals(applyTemperatureCalibration(parsedVitals), trimmed);
+}
+
+function applyTemperatureCalibration(vitals: LiveVitals): LiveVitals {
+  if (vitals.temperature === null) {
+    return vitals;
+  }
+
+  // Temporary +10°C calibration offset applied because the sensor currently reads about 10°C too low.
+  const correctedTemperature = Number(
+    (vitals.temperature + TEMP_CALIBRATION_OFFSET).toFixed(2)
+  );
+
+  return {
+    ...vitals,
+    temperature: correctedTemperature,
+  };
 }
 
 function parseJsonVitals(line: string): LiveVitals | null {
