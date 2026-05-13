@@ -33,13 +33,18 @@ export type TriageSafetyQuestionId =
   | "severe-pain-bleeding-injury"
   | "sudden-worsening";
 
-export type TriageSafetyAnswerValue = "yes" | "no";
+export type TriageSafetySeverity = "none" | "mild" | "moderate" | "severe";
+export type TriageSafetySeverityScore = 0 | 1 | 2 | 3;
+export type TriageSafetyAnswerValue = TriageSafetySeverity;
 
 export type TriageSafetyAnswer = {
   questionId: TriageSafetyQuestionId;
   questionText: string;
-  answerValue: TriageSafetyAnswerValue;
-  answerLabel: "Yes" | "No";
+  selectedLabel: string;
+  severity: TriageSafetySeverity;
+  severityScore: TriageSafetySeverityScore;
+  answerValue?: TriageSafetyAnswerValue | "yes" | "no";
+  answerLabel?: string;
 };
 
 export type TriageSafetyResponses = {
@@ -66,13 +71,16 @@ export type TriageSignalSummary = {
   chestPain: boolean;
   breathingDifficulty: boolean;
   safetyYesCount: number;
+  moderateSafetyCount: number;
+  severeSafetyCount: number;
+  maxSafetySeverityScore: number;
   spo2Band: VitalBand;
   temperatureBand: VitalBand;
   heartRateBand: VitalBand;
 };
 
 export type LocalAssessment = {
-  riskLabel: Extract<TriageRiskLabel, "Low" | "High">;
+  riskLabel: TriageRiskLabel;
   highRiskProbability: number;
   usedSafetyOverride: boolean;
   isCrucial: boolean;

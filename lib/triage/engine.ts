@@ -71,15 +71,27 @@ export function buildLocalAssessment(
   const heartRateBand = getHeartRateBand(vitals.heartRate);
   const safetyAnswers = safetyResponses?.answers ?? [];
   const safetyYesCount = safetyAnswers.filter(
-    (answer) => answer.answerValue === "yes"
+    (answer) => answer.severityScore > 0 || answer.answerValue === "yes"
   ).length;
+  const moderateSafetyCount = safetyAnswers.filter(
+    (answer) => answer.severityScore === 2
+  ).length;
+  const severeSafetyCount = safetyAnswers.filter(
+    (answer) => answer.severityScore === 3
+  ).length;
+  const maxSafetySeverityScore = safetyAnswers.reduce(
+    (max, answer) => Math.max(max, answer.severityScore ?? 0),
+    0
+  );
   const chestPain = safetyAnswers.some(
-    (answer) => answer.questionId === "chest-pain" && answer.answerValue === "yes"
+    (answer) =>
+      answer.questionId === "chest-pain" &&
+      (answer.severityScore > 0 || answer.answerValue === "yes")
   );
   const breathingDifficulty = safetyAnswers.some(
     (answer) =>
       answer.questionId === "breathing-difficulty" &&
-      answer.answerValue === "yes"
+      (answer.severityScore > 0 || answer.answerValue === "yes")
   );
 
   const lowSpo2 = vitals.spo2 <= 94;
@@ -105,8 +117,10 @@ export function buildLocalAssessment(
   if (obesity) probability += 0.04;
   if (chestPain) probability += 0.22;
   if (breathingDifficulty) probability += 0.22;
-  if (safetyYesCount >= 1) probability += safetyYesCount * 0.05;
-  if (safetyYesCount >= 3) probability += 0.32;
+  if (safetyYesCount >= 1) probability += safetyYesCount * 0.04;
+  if (moderateSafetyCount >= 1) probability += moderateSafetyCount * 0.08;
+  if (severeSafetyCount >= 1) probability += 0.36;
+  if (moderateSafetyCount >= 2) probability += 0.3;
 
   if (spo2Band === "critical") probability += 0.2;
   if (temperatureBand === "critical") probability += 0.16;
@@ -115,12 +129,22 @@ export function buildLocalAssessment(
   const highRiskProbability = usedSafetyOverride
     ? 0.95
     : Math.min(round(probability), 0.89);
+  const hasHighRiskAnswers = severeSafetyCount >= 1 || moderateSafetyCount >= 2;
   const riskLabel =
-    highRiskProbability >= 0.325 || safetyYesCount >= 3 ? "High" : "Low";
+    usedSafetyOverride || hasHighRiskAnswers || highRiskProbability >= 0.325
+      ? "High"
+      : highRiskProbability >= 0.2 ||
+          safetyYesCount >= 1 ||
+          spo2Band === "elevated" ||
+          temperatureBand === "elevated" ||
+          heartRateBand === "elevated"
+        ? "Moderate"
+        : "Low";
   const isCrucial =
     usedSafetyOverride ||
+    severeSafetyCount >= 1 ||
+    moderateSafetyCount >= 2 ||
     highRiskProbability >= 0.6 ||
-    safetyYesCount >= 3 ||
     (chestPain && breathingDifficulty);
 
   const summaryParts = [
@@ -136,7 +160,7 @@ export function buildLocalAssessment(
 
   if (safetyResponses) {
     summaryParts.push(
-      `${safetyYesCount} of 5 safety questions were answered yes.`
+      `${safetyYesCount} of 5 symptom questions reported at least mild severity.`
     );
   }
 
@@ -148,8 +172,12 @@ export function buildLocalAssessment(
     summaryParts.push("Breathing difficulty was reported.");
   }
 
-  if (safetyYesCount >= 3) {
-    summaryParts.push("Three or more safety symptoms strongly increased risk.");
+  if (severeSafetyCount >= 1) {
+    summaryParts.push("At least one severe symptom answer forced high-risk handling.");
+  }
+
+  if (moderateSafetyCount >= 2) {
+    summaryParts.push("Two or more moderate symptom answers forced high-risk handling.");
   }
 
   if (usedSafetyOverride) {
@@ -173,6 +201,9 @@ export function buildLocalAssessment(
       chestPain,
       breathingDifficulty,
       safetyYesCount,
+      moderateSafetyCount,
+      severeSafetyCount,
+      maxSafetySeverityScore,
       spo2Band,
       temperatureBand,
       heartRateBand,

@@ -12,7 +12,12 @@ import type { ReactNode } from "react";
 
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import type { TriageConversationTurn, TriageSession, TriageSessionVitals } from "@/types";
+import type {
+  TriageConversationTurn,
+  TriageSafetyAnswer,
+  TriageSession,
+  TriageSessionVitals,
+} from "@/types";
 
 type HighRiskReason = {
   title: string;
@@ -291,6 +296,75 @@ function getConcerningAnswerReasons(
     });
 }
 
+function getSafetyAnswerTitle(answer: TriageSafetyAnswer) {
+  if (answer.severity === "none") {
+    return `${answer.questionText.replace(/\?$/, "")}: none reported`;
+  }
+
+  if (answer.questionId === "chest-pain") {
+    return `${answer.selectedLabel} was reported.`;
+  }
+
+  if (answer.questionId === "breathing-difficulty") {
+    return `${answer.selectedLabel} was reported.`;
+  }
+
+  if (answer.questionId === "faint-confused-dizzy") {
+    return `${answer.selectedLabel} was reported.`;
+  }
+
+  if (answer.questionId === "severe-pain-bleeding-injury") {
+    return `${answer.selectedLabel} was reported.`;
+  }
+
+  return `Symptoms became ${answer.selectedLabel.toLowerCase()}.`;
+}
+
+function getSafetyAnswerMeaning(answer: TriageSafetyAnswer) {
+  if (answer.severityScore === 3) {
+    return "A severe answer is treated as a high-risk safety signal.";
+  }
+
+  if (answer.severityScore === 2) {
+    return "A moderate answer raises concern, especially when more than one moderate symptom is present.";
+  }
+
+  if (answer.severityScore === 1) {
+    return "A mild answer can support closer monitoring when combined with vitals and other symptoms.";
+  }
+
+  return "This answer did not add a symptom severity signal.";
+}
+
+function getSafetyAnswerReasons(session: TriageSession): HighRiskReason[] {
+  return (session.safetyResponses?.answers ?? []).map((answer) => ({
+    title: getSafetyAnswerTitle(answer),
+    detail:
+      answer.severity === "none"
+        ? "No severity was selected for this symptom question."
+        : `${answer.selectedLabel} was selected for: ${answer.questionText}`,
+    patientMeaning: getSafetyAnswerMeaning(answer),
+    severity:
+      answer.severityScore === 3
+        ? "critical"
+        : answer.severityScore === 2
+          ? "elevated"
+          : "stable",
+    source: "answers",
+    icon:
+      answer.questionId === "breathing-difficulty" ? (
+        <Wind className="size-5" />
+      ) : answer.questionId === "chest-pain" ? (
+        <HeartPulse className="size-5" />
+      ) : answer.questionId === "severe-pain-bleeding-injury" ||
+        answer.questionId === "sudden-worsening" ? (
+        <Siren className="size-5" />
+      ) : (
+        <AlertTriangle className="size-5" />
+      ),
+  }));
+}
+
 function getHighRiskReasons(session: TriageSession): HighRiskReason[] {
   const vitals: TriageSessionVitals = session.vitals;
   const reasons: HighRiskReason[] = [];
@@ -343,14 +417,34 @@ function getHighRiskReasons(session: TriageSession): HighRiskReason[] {
     });
   }
 
-  reasons.push(...getConcerningAnswerReasons(session.conversationHistory));
+  const structuredSafetyReasons = getSafetyAnswerReasons(session).filter(
+    (reason) => reason.severity !== "stable"
+  );
 
-  if ((session.localAssessment.signals.safetyYesCount ?? 0) >= 3) {
+  reasons.push(
+    ...(structuredSafetyReasons.length > 0
+      ? structuredSafetyReasons
+      : getConcerningAnswerReasons(session.conversationHistory))
+  );
+
+  if ((session.localAssessment.signals.severeSafetyCount ?? 0) >= 1) {
     reasons.push({
-      title: "Multiple safety symptoms reported",
-      detail: `${session.localAssessment.signals.safetyYesCount} of 5 required safety questions were answered Yes.`,
+      title: "Severe symptom answer reported",
+      detail: "At least one question was answered with severe symptom intensity.",
       patientMeaning:
-        "Several warning symptoms together make the session more concerning, even if a single symptom might be less specific.",
+        "A severe symptom answer is enough to move the session into high-risk handling.",
+      severity: "critical",
+      source: "answers",
+      icon: <ShieldAlert className="size-5" />,
+    });
+  }
+
+  if ((session.localAssessment.signals.moderateSafetyCount ?? 0) >= 2) {
+    reasons.push({
+      title: "Multiple moderate symptoms reported",
+      detail: `${session.localAssessment.signals.moderateSafetyCount} questions were answered with moderate symptom intensity.`,
+      patientMeaning:
+        "Two or more moderate symptoms together can be as concerning as one severe symptom.",
       severity: "critical",
       source: "answers",
       icon: <ShieldAlert className="size-5" />,
@@ -389,6 +483,7 @@ export function ResultCard({
   const isHighRisk =
     finalResult?.riskLabel === "High" || localAssessment?.riskLabel === "High";
   const highRiskReasons = session && isHighRisk ? getHighRiskReasons(session) : [];
+  const safetyAnswerReasons = session ? getSafetyAnswerReasons(session) : [];
 
   return (
     <Card id="triage-result" className="border-slate-200/80 bg-white/95 shadow-sm">
@@ -462,17 +557,27 @@ export function ResultCard({
               </p>
             </div>
 
-            {isHighRisk ? (
-              <div className="rounded-2xl border border-red-100 bg-red-50/40 p-5">
+            {safetyAnswerReasons.length > 0 ? (
+              <div
+                className={`rounded-2xl border p-5 ${
+                  isHighRisk
+                    ? "border-red-100 bg-red-50/40"
+                    : "border-slate-200 bg-slate-50/70"
+                }`}
+              >
                 <div className="flex flex-wrap items-start justify-between gap-3">
                   <div>
                     <div className="flex items-center gap-2 text-lg font-semibold text-slate-950">
-                      <ShieldAlert className="size-5 text-red-600" />
-                      Why this is high risk
+                      <ShieldAlert
+                        className={`size-5 ${
+                          isHighRisk ? "text-red-600" : "text-blue-600"
+                        }`}
+                      />
+                      {isHighRisk ? "Why this is high risk" : "Why this result"}
                     </div>
                     <p className="mt-2 max-w-3xl text-sm leading-6 text-slate-600">
-                      These are the specific findings that pushed this session into
-                      high-risk handling.
+                      These are the selected symptom answers used to explain the
+                      final triage result.
                     </p>
                   </div>
                   {localAssessment?.usedSafetyOverride ? (
@@ -483,7 +588,7 @@ export function ResultCard({
                 </div>
 
                 <div className="mt-4 grid gap-3">
-                  {highRiskReasons.map((reason, index) => (
+                  {(isHighRisk ? highRiskReasons : safetyAnswerReasons).map((reason, index) => (
                     <div
                       key={`${reason.title}-${index}`}
                       className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm"
@@ -543,7 +648,7 @@ export function ResultCard({
                   <span className="font-medium text-slate-900">Signals:</span>{" "}
                   SpO2 {localAssessment?.signals.spo2Band}, temperature{" "}
                   {localAssessment?.signals.temperatureBand}, heart rate{" "}
-                  {localAssessment?.signals.heartRateBand}, safety yes answers{" "}
+                  {localAssessment?.signals.heartRateBand}, symptom severity answers{" "}
                   {localAssessment?.signals.safetyYesCount ?? 0}/5.
                 </div>
                 {finalResult ? (

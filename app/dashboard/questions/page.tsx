@@ -6,7 +6,6 @@ import { ArrowLeft, ArrowRight } from "lucide-react";
 
 import { useDashboardData } from "@/components/dashboard/dashboard-provider";
 import { SafetyQuestionsPanel } from "@/components/triage/safety-questions-panel";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 
@@ -30,11 +29,9 @@ export default function QuestionsPage() {
   return (
     <>
       <section className="space-y-4">
-        <Badge className="rounded-full px-4 py-1.5">Page 3</Badge>
         <h1 className="text-3xl font-semibold text-slate-950">Questions</h1>
         <p className="max-w-3xl text-base text-slate-600">
-          One question appears at a time. Yes/no and directed answers are rendered as
-          choices instead of unnecessary free text.
+          Answer the following questions about your symptoms.
         </p>
       </section>
 

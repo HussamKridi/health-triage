@@ -14,7 +14,7 @@ function buildPrompt(payload: GeminiTriageRequest) {
     "Never ask more than one question at a time.",
     "Do not repeat a previous question.",
     "If safetyResponses is present, the fixed safety question section is complete. Do not ask another question; return a final triage result only.",
-    "Chest pain, breathing difficulty, and three or more yes answers in safetyResponses should increase risk. Dangerous vitals should remain high risk even when all safety answers are no.",
+    "Use safetyResponses severityScore values: any score 3 is high risk; two or more score 2 answers are high risk. Dangerous vitals should remain high risk even when all safety answers are none.",
     "If the case seems clearly dangerous, return a final result quickly.",
     "",
     "Context:",

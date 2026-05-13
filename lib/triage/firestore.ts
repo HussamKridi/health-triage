@@ -22,7 +22,10 @@ import type {
   PatientProfile,
   TriageConversationTurn,
   TriageQuestion,
+  TriageSafetyAnswer,
   TriageSafetyResponses,
+  TriageSafetySeverity,
+  TriageSafetySeverityScore,
   TriageSession,
   TriageSessionStatus,
   TriageSessionVitals,
@@ -100,6 +103,56 @@ function mapConversationTurn(value: unknown): TriageConversationTurn[] {
       createdAt: toDate(turn.createdAt),
     };
   });
+}
+
+function normalizeSafetySeverity(value: unknown): TriageSafetySeverity {
+  return value === "mild" || value === "moderate" || value === "severe"
+    ? value
+    : "none";
+}
+
+function normalizeSafetyScore(value: unknown): TriageSafetySeverityScore {
+  return value === 1 || value === 2 || value === 3 ? value : 0;
+}
+
+function mapSafetyResponses(value: unknown): TriageSafetyResponses | null {
+  if (!value || typeof value !== "object") {
+    return null;
+  }
+
+  const responses = value as Partial<TriageSafetyResponses>;
+
+  if (!Array.isArray(responses.answers)) {
+    return null;
+  }
+
+  return {
+    answers: responses.answers.map((item) => {
+      const answer = item as Partial<TriageSafetyAnswer>;
+      const legacyYes = answer.answerValue === "yes";
+      const severity = legacyYes
+        ? "severe"
+        : normalizeSafetySeverity(answer.severity ?? answer.answerValue);
+      const severityScore = legacyYes
+        ? 3
+        : normalizeSafetyScore(answer.severityScore);
+      const selectedLabel =
+        answer.selectedLabel ??
+        answer.answerLabel ??
+        (severity === "none" ? "No, not at all" : severity);
+
+      return {
+        questionId: answer.questionId,
+        questionText: answer.questionText ?? "",
+        selectedLabel,
+        severity,
+        severityScore,
+        answerValue: severity,
+        answerLabel: selectedLabel,
+      } as TriageSafetyAnswer;
+    }),
+    notes: responses.notes ?? "",
+  };
 }
 
 export function isProfileComplete(profile: PatientProfile | null) {
@@ -191,8 +244,7 @@ function mapSession(item: { id: string; data: () => Record<string, unknown> }): 
       heartRate: Number(data.heartRate ?? 0),
     },
     localAssessment: data.localAssessment as LocalAssessment,
-    safetyResponses:
-      (data.safetyResponses as TriageSafetyResponses | null | undefined) ?? null,
+    safetyResponses: mapSafetyResponses(data.safetyResponses),
     currentQuestion: (data.currentQuestion as TriageQuestion | null) ?? null,
     finalResult: (data.finalResult as FinalTriageResult | null) ?? null,
     conversationHistory: mapConversationTurn(data.conversationHistory),

@@ -104,8 +104,29 @@ async function getTriageDecision(payload: GeminiTriageRequest) {
 
 function applyDisagreement(
   finalResult: FinalTriageResult,
-  baselineRiskLabel: "Low" | "High"
+  baselineRiskLabel: FinalTriageResult["riskLabel"]
 ): FinalTriageResult {
+  if (baselineRiskLabel === "High" && finalResult.riskLabel !== "High") {
+    return {
+      ...finalResult,
+      riskLabel: "High",
+      isCrucial: true,
+      reasoning: `${finalResult.reasoning} The fixed triage severity rules classified this session as high risk.`,
+      recommendedNextAction:
+        finalResult.recommendedNextAction || "Emergency evaluation recommended now.",
+      disagreement: true,
+    };
+  }
+
+  if (baselineRiskLabel === "Moderate" && finalResult.riskLabel === "Low") {
+    return {
+      ...finalResult,
+      riskLabel: "Moderate",
+      reasoning: `${finalResult.reasoning} The fixed triage severity rules classified this session as moderate risk.`,
+      disagreement: true,
+    };
+  }
+
   return {
     ...finalResult,
     disagreement: finalResult.riskLabel !== baselineRiskLabel,
@@ -292,12 +313,12 @@ export function DashboardProvider({ children }: { children: ReactNode }) {
         const safetyConversation = responses.answers.flatMap((answer) => [
           makeTurn("assistant", "question", answer.questionText, {
             questionId: answer.questionId,
-            inputType: "boolean",
+            inputType: "single-select",
           }),
-          makeTurn("user", "answer", answer.answerLabel, {
+          makeTurn("user", "answer", answer.selectedLabel, {
             questionId: answer.questionId,
-            inputType: "boolean",
-            answerValue: answer.answerValue,
+            inputType: "single-select",
+            answerValue: answer.severity,
           }),
         ]);
 

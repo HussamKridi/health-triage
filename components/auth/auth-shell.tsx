@@ -1,81 +1,118 @@
 import Link from "next/link";
-import { Activity, ShieldCheck } from "lucide-react";
+import type { ReactNode } from "react";
+import {
+  Activity,
+  ArrowLeft,
+  BadgeCheck,
+  Clock3,
+  HeartPulse,
+  LockKeyhole,
+  ShieldCheck,
+  ShieldPlus,
+  Sparkles,
+  Stethoscope,
+} from "lucide-react";
 
-import { Badge } from "@/components/ui/badge";
+type AuthShellVariant = "login" | "signup";
 
-export function AuthShell({
-  title,
-  description,
-  footer,
-  children,
-}: {
+type Benefit = {
   title: string;
   description: string;
-  footer: React.ReactNode;
-  children: React.ReactNode;
+  icon: "lock" | "care" | "fast" | "clinical" | "always";
+};
+
+const benefitIcons = {
+  lock: LockKeyhole,
+  care: HeartPulse,
+  fast: Clock3,
+  clinical: BadgeCheck,
+  always: ShieldCheck,
+};
+
+export function AuthShell({
+  variant,
+  benefits,
+  children,
+}: {
+  variant: AuthShellVariant;
+  benefits: Benefit[];
+  children: ReactNode;
 }) {
+  const isLogin = variant === "login";
+  const IllustrationIcon = isLogin ? Stethoscope : ShieldPlus;
+
   return (
-    <div className="min-h-screen bg-[linear-gradient(to_bottom,rgba(248,250,252,1),rgba(255,255,255,1),rgba(240,249,255,0.72))] px-6 py-10 lg:px-8">
-      <div className="mx-auto flex w-full max-w-6xl flex-col gap-6">
-        <div className="flex items-center justify-between">
-          <Link href="/" className="flex items-center gap-3 text-sm font-semibold text-slate-900">
-            <span className="flex size-10 items-center justify-center rounded-2xl bg-gradient-to-br from-sky-600 to-teal-500 text-white shadow-lg shadow-sky-200/70">
+    <div className="min-h-screen overflow-hidden bg-[radial-gradient(circle_at_20%_20%,rgba(219,234,254,0.72),transparent_30%),linear-gradient(180deg,#ffffff_0%,#f8fbff_54%,#ffffff_100%)] px-4 py-5 [font-family:var(--font-geist-sans),Arial,sans-serif] text-slate-900 sm:px-8 lg:px-10">
+      <div className="mx-auto flex min-h-[calc(100vh-2.5rem)] w-full max-w-6xl flex-col">
+        <header className="flex flex-col items-start gap-5">
+          <Link href="/" className="inline-flex items-center gap-3 text-sm font-semibold text-slate-900">
+            <span className="flex size-9 items-center justify-center rounded-full bg-gradient-to-br from-sky-500 to-blue-700 text-white shadow-lg shadow-blue-200/80">
               <Activity className="size-5" />
             </span>
-            <span className="flex flex-col">
-              <span>Health Triage</span>
-              <span className="text-xs font-medium text-slate-500">Clinical decision support</span>
-            </span>
+            <span className="text-base">Health Triage</span>
           </Link>
-        </div>
+          <Link
+            href="/"
+            aria-label="Back to homepage"
+            className="inline-flex size-9 items-center justify-center rounded-xl border border-blue-100 bg-white text-blue-500 shadow-sm shadow-blue-100/70 transition hover:border-blue-200 hover:bg-blue-50"
+          >
+            <ArrowLeft className="size-4" />
+          </Link>
+        </header>
 
-        <div className="grid overflow-hidden rounded-[2rem] border border-slate-200/80 bg-white shadow-[0_25px_80px_-36px_rgba(15,23,42,0.22)] lg:grid-cols-[0.95fr_1.05fr]">
-          <div className="hidden bg-[linear-gradient(160deg,rgba(2,132,199,0.08),rgba(255,255,255,0.95),rgba(13,148,136,0.08))] p-10 lg:flex lg:flex-col lg:justify-between">
-            <div>
-              <Badge className="rounded-full px-4 py-1.5">
-                <ShieldCheck className="mr-2 size-3.5" />
-                Secure health-tech access
-              </Badge>
-              <h1 className="mt-6 max-w-md text-4xl font-semibold tracking-tight text-slate-950">
-                {title}
-              </h1>
-              <p className="mt-4 max-w-md text-base leading-7 text-slate-600">
-                {description}
-              </p>
-            </div>
-
-            <div className="grid gap-4">
-              {[
-                "Guided access to triage sessions and clinical workflows",
-                "Firebase Authentication for secure sign-in and registration",
-                "A clean flow that connects directly to your dashboard experience",
-              ].map((item) => (
-                <div
-                  key={item}
-                  className="rounded-2xl border border-white/70 bg-white/80 p-4 text-sm leading-6 text-slate-600 shadow-sm"
-                >
-                  {item}
+        <main className="flex flex-1 flex-col justify-center gap-8 pt-5 lg:pt-0">
+          <div className="grid items-center gap-5 lg:grid-cols-[0.9fr_1fr] lg:gap-16">
+            <section className="flex w-full min-w-0 justify-center lg:justify-start" aria-hidden="true">
+              <div className="relative h-52 w-full max-w-xs sm:h-80 sm:max-w-sm">
+                <div className="absolute inset-x-6 bottom-3 h-12 rounded-[50%] bg-blue-100/80 blur-xl" />
+                <div className="absolute left-1/2 top-1/2 flex size-36 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-[2rem] bg-gradient-to-br from-sky-100 via-blue-200 to-blue-400 text-white shadow-[0_24px_60px_-28px_rgba(37,99,235,0.7)] sm:size-52">
+                  <IllustrationIcon className="size-20 stroke-[1.7] sm:size-28" />
                 </div>
-              ))}
-            </div>
-          </div>
-
-          <div className="flex items-center justify-center p-6 sm:p-8 lg:p-10">
-            <div className="w-full max-w-md">
-              <div className="mb-8 lg:hidden">
-                <Badge className="rounded-full px-4 py-1.5">Secure health-tech access</Badge>
-                <h1 className="mt-5 text-3xl font-semibold tracking-tight text-slate-950">
-                  {title}
-                </h1>
-                <p className="mt-3 text-sm leading-6 text-slate-600">{description}</p>
+                <div className="absolute bottom-10 left-10 h-16 w-16 rounded-full bg-sky-100 sm:h-20 sm:w-20" />
+                <div className="absolute bottom-8 left-20 h-8 w-24 rounded-t-full bg-blue-500/90 sm:h-10 sm:w-28" />
+                <div className="absolute right-10 top-16 size-10 rounded-2xl bg-blue-50 shadow-inner" />
+                {isLogin ? (
+                  <div className="absolute bottom-16 left-5 flex size-14 items-center justify-center rounded-2xl bg-gradient-to-br from-rose-400 to-rose-500 text-white shadow-lg shadow-rose-100 sm:bottom-20 sm:left-4 sm:size-16">
+                    <HeartPulse className="size-8 sm:size-9" />
+                  </div>
+                ) : (
+                  <div className="absolute bottom-16 left-4 h-16 w-8 rotate-[-32deg] rounded-full bg-sky-100 sm:bottom-20 sm:h-20 sm:w-10" />
+                )}
+                <Sparkles className="absolute right-5 bottom-20 size-8 text-blue-300" />
               </div>
+            </section>
 
-              {children}
-
-              <div className="mt-8 text-sm text-slate-500">{footer}</div>
-            </div>
+            <section className="flex w-full min-w-0 justify-center lg:justify-end">
+              <div className="w-full min-w-0 max-w-sm sm:max-w-md">
+                {children}
+              </div>
+            </section>
           </div>
-        </div>
+
+          <section className="rounded-3xl border border-blue-100/90 bg-white/82 p-5 shadow-[0_24px_70px_-42px_rgba(37,99,235,0.35)] backdrop-blur sm:p-6">
+            <div className="grid gap-5 md:grid-cols-3">
+              {benefits.map((benefit) => {
+                const Icon = benefitIcons[benefit.icon];
+
+                return (
+                  <div key={benefit.title} className="flex items-start gap-3">
+                    <span className="flex size-9 shrink-0 items-center justify-center rounded-full border border-blue-100 bg-blue-50 text-blue-600">
+                      <Icon className="size-4" />
+                    </span>
+                    <span>
+                      <span className="block text-sm font-semibold text-slate-900">
+                        {benefit.title}
+                      </span>
+                      <span className="mt-1 block text-xs leading-5 text-slate-600">
+                        {benefit.description}
+                      </span>
+                    </span>
+                  </div>
+                );
+              })}
+            </div>
+          </section>
+        </main>
       </div>
     </div>
   );
