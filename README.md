@@ -106,8 +106,8 @@ that support the Web Serial API, such as Chrome or Edge.
 - The website opens the serial port at `9600` baud.
 - Arduino code should use the same baud rate: `Serial.begin(9600);`
 - Send one complete reading per line with `Serial.println(...)`.
-- The first incoming line starts a 5-second reading window.
-- At the end of 5 seconds, the app confirms the last valid reading and fills the triage fields.
+- The first incoming line starts a 10-second reading window.
+- At the end of 10 seconds, the app confirms the last valid reading and fills the triage fields.
 - Confirmed values stay locked until the user presses `Retake reading`.
 - The preferred format is JSON:
 

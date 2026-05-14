@@ -73,7 +73,8 @@ const initialVitals: TriageDraft = {
 // Also accepted: HR=76 SpO2=98 TempC=36.8, 98,36.8,76,
 // SPO2:98,TEMP:36.8,HR:76, or spo2=98,temp=36.8,hr=76.
 const SERIAL_BAUD_RATE = 9600;
-const READING_DURATION_SECONDS = 5;
+const READING_DURATION_MS = 10000;
+const READING_DURATION_SECONDS = READING_DURATION_MS / 1000;
 // Temporary +10°C calibration offset applied because the sensor currently reads about 10°C too low.
 const TEMP_CALIBRATION_OFFSET = 10;
 const ARDUINO_FORMAT_EXAMPLE =
@@ -890,10 +891,10 @@ export function TriageForm({
                 </div>
                 <p className="mt-1 leading-6 text-slate-600">
                   {readingStatus === "reading"
-                    ? "The app is collecting incoming serial lines and will confirm the last valid reading after 5 seconds."
+                    ? "The app is collecting incoming serial lines and will confirm the last valid reading after 10 seconds."
                     : readingStatus === "complete"
                       ? "Confirmed readings are locked until you retake the measurement."
-                      : "The 5-second reading timer starts when the next serial line arrives."}
+                      : "The 10-second reading timer starts when the next serial line arrives."}
                 </p>
               </div>
 
